@@ -1,0 +1,113 @@
+/* src/FlightDetailModal.css */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: var(--section-background, #1e1e1e);
+    color: var(--text-color, #e0e0e0);
+    padding: 2rem;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.modal-close-button {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: var(--text-color, #e0e0e0);
+    font-size: 2rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.8rem;
+}
+
+.flight-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color, #383838);
+    /* --- ADD SPACE BELOW FLIGHT-INFO --- */
+    margin-bottom: 2rem;
+    /* Add more space below the flight info section */
+}
+
+.flight-info .current-price {
+    font-weight: bold;
+    color: var(--success-accent, #28a745);
+    font-size: 1.2rem;
+}
+
+.modal-chart-container {
+    height: 300px;
+    /* --- ADD SPACE BELOW CHART CONTAINER --- */
+    margin-bottom: 2rem;
+    /* Ensure space below the chart */
+    /* --- ADD SPACE ABOVE CHART CONTAINER (if needed, this depends on h2 margin) --- */
+    margin-top: 1.5rem;
+    /* Add some space between flight-info and chart */
+}
+
+.subscription-form h3 {
+    margin-bottom: 0.5rem;
+}
+
+.subscription-form p {
+    margin-bottom: 1rem;
+    color: var(--legend-color, #c0c0c0);
+}
+
+.subscription-form .form-group {
+    display: flex;
+    gap: 1rem;
+}
+
+.target-price-input {
+    flex-grow: 1;
+    background-color: var(--input-background) !important;
+    color: var(--input-text) !important;
+    border: 1px solid var(--input-border) !important;
+    padding: 0.75rem !important;
+    border-radius: 8px !important;
+    font-size: 1rem !important;
+}
+
+.subscribe-button {
+    background-color: var(--primary-accent, #007BFF) !important;
+    color: white;
+    font-weight: 500;
+}
+
+.subscribe-button:disabled {
+    background-color: #555 !important;
+    cursor: not-allowed;
+}
+
+.submit-message {
+    margin-top: 1rem;
+    text-align: center;
+    font-weight: 500;
+}
