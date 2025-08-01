@@ -1,9 +1,9 @@
 // src/FlightSearchForm.js
 import React, { useState, useEffect } from 'react';
 import { fetchAirlines, fetchAirports, searchFlights } from './api';
-import { isBefore, addDays, format } from 'date-fns'; // format is essential for DatePicker
+import { isBefore, addDays, format } from 'date-fns';
 import FlightResultsDisplay from './FlightResultsDisplay';
-import DatePicker from 'react-datepicker'; // Reverted to DatePicker
+import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './CustomDatePicker.css';
 
@@ -28,8 +28,8 @@ ChartJS.register(
     ChartDataLabels
 );
 
-
-const FlightSearchForm = () => {
+// Accept userEmail and setUserEmail from App.js
+const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscriptionsLoading, subscriptionsError, setUserSubscriptions }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -43,7 +43,6 @@ const FlightSearchForm = () => {
     const [possibleRoutes, setPossibleRoutes] = useState([]);
     const [selectedRoutes, setSelectedRoutes] = useState([]);
 
-    // Reverted to DatePicker state management
     const [startDate, setStartDate] = useState(new Date());
     const [endDate, setEndDate] = useState(addDays(new Date(), 7));
 
@@ -123,6 +122,10 @@ const FlightSearchForm = () => {
     };
 
     const validateForm = () => {
+        if (!userEmail || !userEmail.includes('@') || !userEmail.includes('.')) {
+            alert("Please enter a valid email address to proceed.");
+            return false;
+        }
         if (!direction) {
             alert("Please select a travel direction.");
             return false;
@@ -137,7 +140,7 @@ const FlightSearchForm = () => {
         }
 
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // Reset time for accurate comparison
+        today.setHours(0, 0, 0, 0);
 
         if (isBefore(endDate, startDate)) {
             alert("End date cannot be before start date.");
@@ -165,7 +168,6 @@ const FlightSearchForm = () => {
             const departureAirportCodes = selectedRoutes.map(route => route.split('-')[0]);
             const arrivalAirportCodes = selectedRoutes.map(route => route.split('-')[1]);
 
-            // Format dates from DatePicker for the API
             const formattedStartDate = format(startDate, 'yyyy-MM-dd');
             const formattedEndDate = format(endDate, 'yyyy-MM-dd');
 
@@ -211,6 +213,26 @@ const FlightSearchForm = () => {
             <h1>Welcome to Tunisia Flights Helper !</h1>
 
             <form onSubmit={handleSubmit} className="form-grid">
+                <fieldset className="email-section full-span">
+                    <legend>0. Your Email</legend>
+                    <div className="input-group">
+                        <label htmlFor="userEmail">Email:</label>
+                        <input
+                            type="email"
+                            id="userEmail"
+                            value={userEmail}
+                            onChange={(e) => setUserEmail(e.target.value)}
+                            placeholder="Enter your email"
+                            className="text-input"
+                            required
+                        />
+                    </div>
+                    {/* --- NEW CLARIFICATION TEXT --- */}
+                    <p className="email-clarification-text">We'll use this email to save your preferences and send price alerts.</p>
+                    {subscriptionsLoading && <p className="loading-spinner">Loading your subscriptions...</p>}
+                    {subscriptionsError && <p className="error-text-small">{subscriptionsError}</p>}
+                </fieldset>
+
                 <fieldset className="travel-direction-section full-span">
                     <legend>1. Select Travel Direction</legend>
                     <div className="radio-group">
@@ -313,7 +335,13 @@ const FlightSearchForm = () => {
             {noFlightsMessage}
 
             {searchResults && Object.keys(searchResults).length > 0 ? (
-                <FlightResultsDisplay groupedFlights={searchResults} airlines={allAirlines} />
+                <FlightResultsDisplay
+                    groupedFlights={searchResults}
+                    airlines={allAirlines}
+                    userEmail={userEmail}
+                    userSubscriptions={userSubscriptions}
+                    setUserSubscriptions={setUserSubscriptions}
+                />
             ) : null}
         </div>
     );

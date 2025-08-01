@@ -1,3 +1,6 @@
+/* src/App.css */
+
+/* Define CSS variables for colors */
 :root {
   --background-color: #f4f7f6;
   --text-color: #333;
@@ -99,6 +102,18 @@ h2 {
   margin-bottom: 3rem;
 }
 
+/* --- FORM STYLES --- */
+form {
+  margin-bottom: 30px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  background-color: transparent !important;
+  border: none !important;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -137,6 +152,51 @@ legend {
   justify-content: center;
 }
 
+/* --- NEW INPUT GROUP FOR LABELS AND INPUTS --- */
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  /* Space between label and input */
+  margin-top: 1rem;
+  /* Space below legend */
+  justify-content: center;
+  /* Center the label-input pair */
+  width: 100%;
+  /* Take full width for centering */
+}
+
+.input-group label {
+  flex-shrink: 0;
+  /* Prevent label from shrinking */
+}
+
+.input-group .text-input {
+  flex-grow: 1;
+  /* Allow input to grow */
+  max-width: 300px;
+  /* Limit max width for readability */
+}
+
+/* --- NEW STYLE FOR EMAIL CLARIFICATION TEXT --- */
+.email-clarification-text {
+  text-align: center;
+  font-size: 0.9em;
+  color: var(--legend-color);
+  /* Use a slightly muted color */
+  margin-top: 0.5rem;
+  /* Space above the text */
+  padding: 0 1rem;
+  /* Horizontal padding to keep it within bounds */
+  max-width: 700px;
+  /* Optional: limit width for readability */
+  margin-left: auto;
+  /* Center the text */
+  margin-right: auto;
+}
+
+
+/* --- BUTTONS --- */
 button {
   border: none;
   cursor: pointer;
@@ -192,6 +252,8 @@ button:hover {
   background-color: var(--primary-button-hover);
 }
 
+
+/* --- FORM INPUTS & LABELS (Universal styling) --- */
 label {
   display: inline-flex;
   align-items: center;
@@ -204,11 +266,18 @@ input[type="radio"] {
   accent-color: var(--primary-button-bg);
 }
 
+/* --- TEXT INPUT SPECIFIC STYLING (Applies to email field) --- */
 input[type="text"],
 input[type="date"],
 input[type="number"],
+input[type="email"],
+/* Added email type */
 select,
-textarea {
+textarea,
+.text-input
+
+/* Apply to class as well */
+  {
   background-color: var(--input-background) !important;
   color: var(--input-text) !important;
   border: 1px solid var(--input-border) !important;
@@ -232,23 +301,7 @@ textarea {
   gap: 0.5rem;
 }
 
-.results-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
-  margin-top: 3rem;
-}
-
-.chart-card {
-  padding: 1.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background-color: var(--section-background);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  width: 100%;
-  max-width: none !important;
-}
-
+/* --- MESSAGES (Loading, Error, etc.) --- */
 .info-message,
 .error-message {
   text-align: center;
@@ -262,4 +315,16 @@ textarea {
   background-color: #4d1818;
   color: #ffacac;
   border: 1px solid #8d2f2f;
+}
+
+.loading-spinner {
+  font-size: 0.9em;
+  color: var(--legend-color);
+  margin-left: 10px;
+}
+
+.error-text-small {
+  font-size: 0.9em;
+  color: var(--error-text);
+  margin-left: 10px;
 }

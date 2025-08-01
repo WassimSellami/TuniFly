@@ -1,11 +1,8 @@
 // src/FlightDetailModal.js
 import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
-import { fetchPriceHistory, createSubscription } from './api';
+import { fetchPriceHistory, createSubscription, updateSubscription, deleteSubscription, fetchSubscriptionByFlightAndEmail } from './api';
 import './FlightDetailModal.css';
-
-// Import format from date-fns
-import { format as dateFormatFns } from 'date-fns';
 
 // Chart.js imports and registrations
 import {
@@ -21,6 +18,7 @@ import {
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import 'chartjs-adapter-date-fns';
+import { format as dateFormatFns } from 'date-fns';
 
 ChartJS.register(
     CategoryScale,
@@ -34,7 +32,8 @@ ChartJS.register(
     ChartDataLabels
 );
 
-const FlightDetailModal = ({ flight, onClose, airlines }) => {
+// Accept userEmail, userSubscriptions, setUserSubscriptions
+const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscriptions, setUserSubscriptions }) => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -42,49 +41,101 @@ const FlightDetailModal = ({ flight, onClose, airlines }) => {
     const [submitting, setSubmitting] = useState(false);
     const [submitMessage, setSubmitMessage] = useState('');
 
+    const [existingSubscription, setExistingSubscription] = useState(null); // Stores the user's sub for this flight
+
     useEffect(() => {
-        const loadHistory = async () => {
+        const loadModalData = async () => {
             if (!flight || !flight.id) {
                 setError("Invalid flight data provided.");
                 setLoading(false);
                 return;
             }
+
+            // --- Load Price History ---
+            setLoading(true);
+            setError(null);
+            setHistory([]);
             try {
-                setLoading(true);
-                setError(null);
-                setHistory([]);
                 const historyData = await fetchPriceHistory(flight.id);
                 setHistory(historyData);
             } catch (err) {
-                console.error("Error in loadHistory:", err);
-                setError("Could not load price history. Please try again.");
+                console.error("Error loading price history:", err);
+                setError("Could not load price history.");
             } finally {
                 setLoading(false);
             }
+
+            // --- Check for Existing Subscription ---
+            setExistingSubscription(null); // Clear previous sub
+            if (userEmail) {
+                try {
+                    const sub = await fetchSubscriptionByFlightAndEmail(flight.id, userEmail);
+                    if (sub) {
+                        setExistingSubscription(sub);
+                        setTargetPrice(sub.targetPrice); // Pre-fill with existing target price
+                    } else {
+                        setTargetPrice(''); // Clear if no existing sub
+                    }
+                } catch (err) {
+                    console.error("Error fetching existing subscription:", err);
+                    // Don't block modal for this, just show an error message
+                    setSubmitMessage("Could not check existing subscription status.");
+                }
+            }
         };
-        loadHistory();
-    }, [flight]);
+        loadModalData();
+    }, [flight, userEmail]); // Re-run if flight or userEmail changes
 
-    const handleSubscribe = async (e) => {
-        e.preventDefault();
-        if (!targetPrice || isNaN(targetPrice) || targetPrice <= 0) {
-            setSubmitMessage("Please enter a valid target price.");
-            return;
-        }
-
+    const handleSubscriptionAction = async (actionType) => {
         setSubmitting(true);
         setSubmitMessage('');
 
+        if (actionType !== 'delete' && (!targetPrice || isNaN(targetPrice) || parseFloat(targetPrice) <= 0)) {
+            setSubmitMessage("Please enter a valid target price.");
+            setSubmitting(false);
+            return;
+        }
+
+        const payload = {
+            flightId: flight.id, // Use flightId as per backend schema
+            email: userEmail,
+            targetPrice: parseFloat(targetPrice)
+        };
+
         try {
-            const subscriptionPayload = {
-                flight_id: flight.id,
-                target_price: parseFloat(targetPrice),
-            };
-            const result = await createSubscription(subscriptionPayload);
-            setSubmitMessage(result.message || "Subscription successful!");
+            let result;
+            if (actionType === 'create') {
+                result = await createSubscription(payload);
+                setSubmitMessage("Subscription created successfully!");
+            } else if (actionType === 'update' && existingSubscription) {
+                result = await updateSubscription(existingSubscription.id, payload);
+                setSubmitMessage("Subscription updated successfully!");
+            } else if (actionType === 'delete' && existingSubscription) {
+                result = await deleteSubscription(existingSubscription.id);
+                setSubmitMessage("Subscription deleted successfully!");
+            }
+
+            // Update parent's subscriptions list
+            // This is a simplified way to re-sync. For more complex apps, consider context/redux.
+            setUserSubscriptions(prevSubs => {
+                if (actionType === 'create') {
+                    return [...prevSubs, result]; // Add new sub
+                } else if (actionType === 'update') {
+                    return prevSubs.map(sub => sub.id === result.id ? result : sub); // Update existing
+                } else if (actionType === 'delete') {
+                    return prevSubs.filter(sub => sub.id !== existingSubscription.id); // Remove deleted
+                }
+                return prevSubs;
+            });
+
+            // Re-check existing subscription status for this flight
+            const updatedSub = await fetchSubscriptionByFlightAndEmail(flight.id, userEmail);
+            setExistingSubscription(updatedSub);
+
             setTimeout(onClose, 2000);
         } catch (err) {
-            setSubmitMessage(err.message || "Subscription failed. Please try again.");
+            setSubmitMessage(err.message || "Action failed. Please try again.");
+            console.error("Subscription action error:", err);
         } finally {
             setSubmitting(false);
         }
@@ -115,8 +166,6 @@ const FlightDetailModal = ({ flight, onClose, airlines }) => {
 
     const airline = airlines.find(a => a.code === flight.airlineCode);
     const airlineName = airline ? airline.name : flight.airlineCode;
-
-    // --- CRITICAL CHANGE: Format departure date using date-fns format ---
     const departureDateFormatted = dateFormatFns(new Date(flight.departureDate), 'dd MMM yyyy');
 
 
@@ -249,23 +298,63 @@ const FlightDetailModal = ({ flight, onClose, airlines }) => {
                     {!loading && !error && history.length === 0 && <p>No price history available for this flight.</p>}
                 </div>
 
-                <form className="subscription-form" onSubmit={handleSubscribe}>
+                <form className="subscription-form" onSubmit={(e) => { e.preventDefault(); /* Prevent default form submission on button click */ }}>
                     <h3>Track this Flight</h3>
-                    <p>Get notified when the price drops below your target.</p>
-                    <div className="form-group">
-                        <input
-                            type="number"
-                            placeholder="Enter Target Price (EUR)"
-                            value={targetPrice}
-                            onChange={e => setTargetPrice(e.target.value)}
-                            className="target-price-input"
-                            required
-                        />
-                        <button type="submit" className="subscribe-button" disabled={submitting}>
-                            {submitting ? 'Subscribing...' : 'Subscribe'}
-                        </button>
-                    </div>
-                    {submitMessage && <p className="submit-message">{submitMessage}</p>}
+                    {!userEmail ? (
+                        <p className="submit-message error-message">Please enter your email in the search form to subscribe.</p>
+                    ) : (
+                        <>
+                            {existingSubscription ? (
+                                <p className="submit-message">
+                                    You are currently tracking this flight at <strong>{existingSubscription.targetPrice}€</strong>.
+                                </p>
+                            ) : (
+                                <p>Get notified when the price drops below your target.</p>
+                            )}
+
+                            <div className="form-group">
+                                <input
+                                    type="number"
+                                    placeholder="Enter Target Price (EUR)"
+                                    value={targetPrice}
+                                    onChange={e => setTargetPrice(e.target.value)}
+                                    className="target-price-input"
+                                    required
+                                    disabled={submitting}
+                                />
+                                {existingSubscription ? (
+                                    <>
+                                        <button
+                                            type="button" // Change type to button to prevent form submission
+                                            className="subscribe-button update-button"
+                                            onClick={() => handleSubscriptionAction('update')}
+                                            disabled={submitting}
+                                        >
+                                            {submitting ? 'Updating...' : 'Update'}
+                                        </button>
+                                        <button
+                                            type="button" // Change type to button
+                                            className="subscribe-button delete-button"
+                                            onClick={() => handleSubscriptionAction('delete')}
+                                            disabled={submitting}
+                                        >
+                                            {submitting ? 'Deleting...' : 'Delete'}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        type="button" // Change type to button
+                                        className="subscribe-button"
+                                        onClick={() => handleSubscriptionAction('create')}
+                                        disabled={submitting}
+                                    >
+                                        {submitting ? 'Subscribing...' : 'Subscribe'}
+                                    </button>
+                                )}
+                            </div>
+                            {submitMessage && <p className="submit-message">{submitMessage}</p>}
+                        </>
+                    )}
                 </form>
             </div>
         </div>

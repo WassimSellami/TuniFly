@@ -24,7 +24,8 @@ ChartJS.register(
     ChartDataLabels
 );
 
-const FlightResultsDisplay = ({ groupedFlights, airlines }) => {
+// Accept userEmail, userSubscriptions, setUserSubscriptions
+const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscriptions, setUserSubscriptions }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedFlight, setSelectedFlight] = useState(null);
 
@@ -75,7 +76,6 @@ const FlightResultsDisplay = ({ groupedFlights, airlines }) => {
                                     const chartElement = elements[0];
                                     const dataIndex = chartElement.index;
                                     const clickedFlight = sortedFlights[dataIndex];
-                                    // --- CRITICAL FIX: Changed 'clickedLight' to 'clickedFlight' ---
                                     if (clickedFlight) {
                                         handleFlightClick(clickedFlight);
                                     }
@@ -109,7 +109,9 @@ const FlightResultsDisplay = ({ groupedFlights, airlines }) => {
                                         size: 14
                                     },
                                     formatter: function (value, context) {
-                                        return value;
+                                        const flightId = sortedFlights[context.dataIndex]?.id;
+                                        const isSubscribed = userSubscriptions.some(sub => sub.flightId === flightId);
+                                        return `${value} ${isSubscribed ? '★' : ''}`; // Add star for subscribed flights
                                     }
                                 }
                             },
@@ -127,9 +129,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines }) => {
                                         font: { size: 13 },
                                         callback: function (value, index, ticks) {
                                             const dateString = this.getLabelForValue(value);
-
                                             const date = parseISO(dateString);
-
                                             if (isNaN(date.getTime())) {
                                                 return '';
                                             }
@@ -175,6 +175,9 @@ const FlightResultsDisplay = ({ groupedFlights, airlines }) => {
                     flight={selectedFlight}
                     onClose={() => setIsModalOpen(false)}
                     airlines={airlines}
+                    userEmail={userEmail}
+                    userSubscriptions={userSubscriptions}
+                    setUserSubscriptions={setUserSubscriptions}
                 />
             )}
         </>
