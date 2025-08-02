@@ -35,6 +35,11 @@
 
   --info-background: #e9ecef;
   --info-text: #495057;
+
+  /* NEW: Colors for inline messages */
+  --inline-error-color: #dc3545;
+  --inline-success-color: #28a745;
+  --inline-info-color: #007bff;
 }
 
 .dark-theme {
@@ -71,6 +76,11 @@
 
   --info-background: #3a3a3a;
   --info-text: #c0c0c0;
+
+  /* NEW: Colors for inline messages in dark theme */
+  --inline-error-color: #ff8888;
+  --inline-success-color: #4caf50;
+  --inline-info-color: #5a8eec;
 }
 
 * {
@@ -132,7 +142,6 @@ h2 {
   margin-bottom: 3rem;
 }
 
-/* New style for the instruction text below h2 */
 .click-details-text {
   display: block;
   font-size: 0.7em;
@@ -141,7 +150,6 @@ h2 {
   margin-top: 0.5rem;
 }
 
-/* --- FORM STYLES --- */
 form {
   margin-bottom: 30px;
   width: 100%;
@@ -191,7 +199,6 @@ legend {
   justify-content: center;
 }
 
-/* --- INPUT GROUP FOR LABELS AND INPUTS (Email field) --- */
 .input-group {
   display: flex;
   align-items: center;
@@ -210,7 +217,6 @@ legend {
   max-width: 300px;
 }
 
-/* --- EMAIL CLARIFICATION TEXT --- */
 .email-clarification-text {
   text-align: center;
   font-size: 0.9em;
@@ -223,7 +229,45 @@ legend {
 }
 
 
-/* --- BUTTONS --- */
+.feedback-message,
+.error-message-inline,
+.success-message-inline {
+  text-align: center;
+  font-size: 0.9em;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.error-message-inline {
+  color: var(--inline-error-color);
+  background-color: rgba(var(--inline-error-color-rgb), 0.1);
+  border: 1px solid var(--inline-error-color);
+}
+
+.success-message-inline {
+  color: var(--inline-success-color);
+  background-color: rgba(var(--inline-success-color-rgb), 0.1);
+  border: 1px solid var(--inline-success-color);
+}
+
+:root {
+  --inline-error-color-rgb: 220, 53, 69;
+  --inline-success-color-rgb: 40, 167, 69;
+  --inline-info-color-rgb: 0, 123, 255;
+}
+
+.dark-theme {
+  --inline-error-color-rgb: 255, 136, 136;
+  --inline-success-color-rgb: 76, 175, 80;
+  --inline-info-color-rgb: 90, 142, 236;
+}
+
+
 button {
   border: none;
   cursor: pointer;
@@ -283,8 +327,6 @@ button:hover {
   box-shadow: none;
 }
 
-
-/* --- FORM INPUTS & LABELS (Universal styling) --- */
 label {
   display: inline-flex;
   align-items: center;
@@ -329,7 +371,6 @@ textarea,
   gap: 0.5rem;
 }
 
-/* --- MESSAGES (Loading, Error, etc.) --- */
 .info-message,
 .error-message {
   text-align: center;
@@ -357,7 +398,6 @@ textarea,
   margin-left: 10px;
 }
 
-/* --- NEW STYLES FOR SUBSCRIPTION LIST AND NOTIFICATION CHECKBOX --- */
 .notification-checkbox-group {
   display: flex;
   justify-content: center;
@@ -378,7 +418,6 @@ textarea,
   border-top: 1px dashed var(--border-color);
 }
 
-/* Header with refresh button */
 .subscriptions-header {
   display: flex;
   justify-content: center;
@@ -563,15 +602,10 @@ textarea,
   margin-top: 1rem;
 }
 
-/* Chart card margin for spacing between individual route charts */
 .chart-card {
   margin-bottom: 4rem;
-  /* Increased margin bottom for more space */
 }
 
-/* Specific styling for the chart title area to push the next chart down */
 .chart-card .chartjs-render-monitor {
-  /* Target the canvas parent directly for extra space */
   margin-bottom: 2rem;
-  /* Add more space below each chart canvas */
 }

@@ -61,6 +61,10 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
     const [userCheckLoading, setUserCheckLoading] = useState(true);
     const [userActionError, setUserActionError] = useState(null);
 
+    const [formErrors, setFormErrors] = useState({});
+    // Removed formSubmitMessage state
+
+
     const capitalizeWords = useCallback((str) => {
         if (!str) return '';
         return str.toLowerCase().split(' ').map(word => {
@@ -221,14 +225,19 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
 
     const handleDirectionChange = (e) => {
         setDirection(e.target.value);
+        setFormErrors(prev => ({ ...prev, direction: null }));
     };
 
     const handleRouteToggle = (route) => {
-        setSelectedRoutes(prev =>
-            prev.includes(route)
+        setSelectedRoutes(prev => {
+            const newSelectedRoutes = prev.includes(route)
                 ? prev.filter(r => r !== route)
-                : [...prev, route]
-        );
+                : [...prev, route];
+            if (newSelectedRoutes.length > 0) {
+                setFormErrors(prev => ({ ...prev, selectedRoutes: null }));
+            }
+            return newSelectedRoutes;
+        });
     };
 
     const handleAirlineToggle = (airlineCode) => {
@@ -239,46 +248,44 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         );
     };
 
-    const validateForm = () => {
+    const validateForm = useCallback(() => {
+        const errors = {};
         if (!userEmail || !userEmail.includes('@') || !userEmail.includes('.')) {
-            alert("Please enter a valid email address to proceed.");
-            return false;
+            errors.userEmail = "Please enter a valid email address.";
         }
         if (!userExists) {
-            alert("Please save your email address first.");
-            return false;
+            errors.userExists = "Please save your email address first to proceed with search.";
         }
         if (!direction) {
-            alert("Please select a travel direction.");
-            return false;
+            errors.direction = "Please select a travel direction.";
         }
         if (selectedRoutes.length === 0) {
-            alert("Please select at least one route.");
-            return false;
+            errors.selectedRoutes = "Please select at least one route.";
         }
         if (!startDate || !endDate) {
-            alert("Please select both a start and end date.");
-            return false;
+            errors.dateRange = "Please select both a start and end date.";
+        } else {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (isBefore(endDate, startDate)) {
+                errors.dateRange = "End date cannot be before start date.";
+            }
+            if (isBefore(startDate, today)) {
+                errors.dateRange = "Start date cannot be before today's date.";
+            }
         }
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (isBefore(endDate, startDate)) {
-            alert("End date cannot be before start date.");
-            return false;
-        }
-        if (isBefore(startDate, today)) {
-            alert("Start date cannot be before today's date.");
-            return false;
-        }
-        return true;
-    };
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    }, [userEmail, userExists, direction, selectedRoutes, startDate, endDate]);
 
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        // Removed setFormSubmitMessage(null); as formSubmitMessage state is removed
+
         if (!validateForm()) {
+            // No general message here, just rely on inline errors
             return;
         }
 
@@ -311,9 +318,11 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
             }, {});
 
             setSearchResults(groupedResults);
+            // No general success message after search, data display is enough confirmation
 
         } catch (err) {
             setError("Failed to fetch flights. " + err.message);
+            // setFormSubmitMessage({ type: 'error', message: "Failed to load flights. " + err.message }); // Removed
         } finally {
             setLoading(false);
         }
@@ -325,9 +334,9 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
             try {
                 await deleteSubscription(subId);
                 setDisplaySubscriptions(prevSubs => prevSubs.filter(sub => sub.id !== subId));
-                alert("Subscription deleted successfully!");
+                setUserActionError("Subscription deleted successfully!");
             } catch (err) {
-                alert("Failed to delete subscription: " + err.message);
+                setUserActionError("Failed to delete subscription: " + err.message);
                 console.error("Delete subscription error:", err);
             }
         }
@@ -365,14 +374,14 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                 enableNotificationsSetting: enableEmailNotifications
             });
             setUserExists(true);
-            setUserActionError("User saved successfully!");
+            setUserActionError("Your email has been saved successfully!");
             loadAndEnrichSubscriptions();
         } catch (err) {
             console.error("Error saving user:", err);
             setUserActionError(err.message || "Failed to save user. Please try again.");
             if (err.message && err.message.includes("already registered")) {
                 setUserExists(true);
-                setUserActionError("This email is already registered.");
+                setUserActionError("This email is already registered. Data loaded.");
                 try {
                     const user = await fetchUserByEmail(userEmail);
                     if (user) setEnableEmailNotifications(user.enableNotificationsSetting);
@@ -412,6 +421,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                                 setUserEmail(e.target.value);
                                 setUserExists(false);
                                 setUserActionError(null);
+                                setFormErrors(prev => ({ ...prev, userEmail: null }));
                             }}
                             placeholder="Enter your email"
                             className="text-input"
@@ -422,9 +432,11 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                     <p className="email-clarification-text">
                         We'll use this email to save your preferences and send price alerts.
                     </p>
+                    {formErrors.userEmail && <p className="error-message-inline">{formErrors.userEmail}</p>}
+
 
                     {userCheckLoading && <p className="loading-spinner">Checking user status...</p>}
-                    {userActionError && <p className="error-text-small">{userActionError}</p>}
+                    {userActionError && <p className={`feedback-message ${userActionError.includes('success') ? 'success-message-inline' : 'error-message-inline'}`}>{userActionError}</p>}
 
                     {!userCheckLoading && !userExists && userEmail && userEmail.includes('@') && userEmail.includes('.') && (
                         <div className="save-user-section">
@@ -491,6 +503,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                             </div>
                         </>
                     )}
+                    {formErrors.userExists && <p className="error-message-inline">{formErrors.userExists}</p>}
                 </fieldset>
 
                 <fieldset className="travel-direction-section full-span">
@@ -513,6 +526,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                             /> Germany to Tunisia
                         </label>
                     </div>
+                    {formErrors.direction && <p className="error-message-inline">{formErrors.direction}</p>}
                 </fieldset>
 
                 {direction && possibleRoutes.length > 0 && (
@@ -535,6 +549,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                                 );
                             })}
                         </div>
+                        {formErrors.selectedRoutes && <p className="error-message-inline">{formErrors.selectedRoutes}</p>}
                     </fieldset>
                 )}
 
@@ -545,7 +560,10 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                             <label htmlFor="startDate">Start Date:</label>
                             <DatePicker
                                 selected={startDate}
-                                onChange={(date) => setStartDate(date)}
+                                onChange={(date) => {
+                                    setStartDate(date);
+                                    setFormErrors(prev => ({ ...prev, dateRange: null }));
+                                }}
                                 selectsStart
                                 startDate={startDate}
                                 endDate={endDate}
@@ -560,7 +578,10 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                             <label htmlFor="endDate">End Date:</label>
                             <DatePicker
                                 selected={endDate}
-                                onChange={(date) => setEndDate(date)}
+                                onChange={(date) => {
+                                    setEndDate(date);
+                                    setFormErrors(prev => ({ ...prev, dateRange: null }));
+                                }}
                                 selectsEnd
                                 startDate={startDate}
                                 endDate={endDate}
@@ -572,6 +593,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                             />
                         </div>
                     </div>
+                    {formErrors.dateRange && <p className="error-message-inline">{formErrors.dateRange}</p>}
                 </fieldset>
 
                 <fieldset className="airline-selection-section full-span">
@@ -594,6 +616,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
             <button type="submit" className="submit-button" onClick={handleSubmit} disabled={!userExists}>
                 Show Flights
             </button>
+            {/* Removed the general form submission message here */}
 
             {loadingMessage}
             {errorMessage}
