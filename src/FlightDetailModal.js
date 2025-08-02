@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
+import React, { useState, useEffect, useCallback } from 'react';
 import { Line } from 'react-chartjs-2';
 import { fetchPriceHistory, createSubscription, updateSubscription, deleteSubscription, fetchSubscriptionByFlightAndEmail } from './api';
 import './FlightDetailModal.css';
@@ -40,7 +40,6 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
 
     const [existingSubscription, setExistingSubscription] = useState(null);
 
-    // Re-declare capitalizeWords here for use in this component, or pass it as prop
     const capitalizeWords = useCallback((str) => {
         if (!str) return '';
         return str.toLowerCase().split(' ').map(word => {
@@ -190,11 +189,8 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
     }));
 
     const airline = airlines.find(a => a.code === flight.airlineCode);
-    const airlineName = airline ? capitalizeWords(airline.name) : flight.airlineCode; // Applied capitalizeWords
+    const airlineName = airline ? capitalizeWords(airline.name) : flight.airlineCode;
     const departureDateFormatted = format(parseISO(flight.departureDate), 'dd MMM yyyy');
-
-    // Removed the frontend generateNouvelairBookingUrl function
-
 
     const data = {
         datasets: [{
@@ -250,27 +246,23 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                 type: 'time',
                 time: {
                     tooltipFormat: 'MMM d, yyyy, h:mm a',
-                    unit: 'hour',
+                    unit: 'day', // Base unit for axis, can be refined by tick settings
                     displayFormats: {
-                        millisecond: 'h:mm:ss.SSS a',
-                        second: 'h:mm:ss a',
-                        minute: 'h:mm a',
-                        hour: 'h a',
-                        day: 'MMM d',
-                        week: 'MMM d',
-                        month: 'MMM yyyy',
-                        quarter: 'qqq yyyy',
-                        year: 'yyyy',
+                        day: 'dd MMM', // Default format for 'day' unit
+                        hour: 'hh:mm a' // Include hour format for tooltip if detail is needed
                     }
                 },
                 ticks: {
+                    source: 'data', // <--- IMPORTANT: Generate ticks only for actual data points
+                    autoSkip: false, // <--- IMPORTANT: Prevent auto-skipping labels
+                    maxRotation: 45,
+                    minRotation: 45,
                     color: '#e0e0e0',
                     callback: function (value, index, ticks) {
                         const date = new Date(value);
-                        return [
-                            dateFormatFns(date, 'dd MMM'),
-                            dateFormatFns(date, 'HH:mm')
-                        ];
+                        // Format to show Day and Month for clarity on sparse ticks
+                        // If multiple points per day, consider also showing time if needed.
+                        return dateFormatFns(date, 'dd MMM');
                     }
                 },
                 grid: { color: 'rgba(255, 255, 255, 0.1)' }
@@ -391,7 +383,6 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                     )}
                 </form>
 
-                {/* Use flight.bookingUrl directly */}
                 {flight.bookingUrl ? (
                     <div className="book-now-section">
                         <h3>Ready to Book?</h3>
