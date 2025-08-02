@@ -1,7 +1,6 @@
-// src/App.js
 import React, { useState, useEffect } from 'react';
 import FlightSearchForm from './FlightSearchForm';
-import { fetchSubscriptionsByEmail } from './api'; // Import new API call
+import { fetchSubscriptionsByEmail } from './api';
 import './App.css';
 
 function App() {
@@ -28,7 +27,7 @@ function App() {
           const subs = await fetchSubscriptionsByEmail(userEmail);
           setUserSubscriptions(subs);
         } catch (err) {
-          setSubscriptionsError("Failed to load your subscriptions.");
+          setSubscriptionsError("Failed to load your subscriptions. Please check your network or try again later.");
           console.error("Subscription fetch error:", err);
         } finally {
           setSubscriptionsLoading(false);
@@ -38,10 +37,10 @@ function App() {
       }
     };
     loadSubscriptions();
-  }, [userEmail]); // Re-fetch when userEmail changes
+  }, [userEmail]);
 
   return (
-    <div className="App dark-theme">
+    <div className="App dark-theme"> {/* Ensure dark-theme class is applied as per your request */}
       <main className="main-content">
         <FlightSearchForm
           userEmail={userEmail}

@@ -1,4 +1,3 @@
-// src/FlightResultsDisplay.js
 import React, { useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import FlightDetailModal from './FlightDetailModal';
@@ -12,7 +11,7 @@ import {
     Legend,
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { format as dateFormatFns, parseISO } from 'date-fns';
+import { format as dateFormatFns, parseISO } from 'date-fns'; // Ensure parseISO is imported
 
 ChartJS.register(
     CategoryScale,
@@ -24,8 +23,8 @@ ChartJS.register(
     ChartDataLabels
 );
 
-// Accept userEmail, userSubscriptions, setUserSubscriptions
-const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscriptions, setUserSubscriptions }) => {
+// Accept userEmail, userSubscriptions, setUserSubscriptions, and new enableEmailNotifications
+const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscriptions, setUserSubscriptions, enableEmailNotifications }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedFlight, setSelectedFlight] = useState(null);
 
@@ -51,7 +50,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                             new Date(a.departureDate) - new Date(b.departureDate)
                         );
 
-                        const labels = sortedFlights.map(f => f.departureDate.split('T')[0]);
+                        const labels = sortedFlights.map(f => f.departureDate.split('T')[0]); // Use split to remove time if present, keeping date string
                         const prices = sortedFlights.map(f => f.price);
 
                         const data = {
@@ -109,7 +108,9 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                                         size: 14
                                     },
                                     formatter: function (value, context) {
+                                        // Find the flight in sortedFlights to get its ID
                                         const flightId = sortedFlights[context.dataIndex]?.id;
+                                        // Check if any user subscription matches this flight ID
                                         const isSubscribed = userSubscriptions.some(sub => sub.flightId === flightId);
                                         return `${value} ${isSubscribed ? '★' : ''}`; // Add star for subscribed flights
                                     }
@@ -129,6 +130,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                                         font: { size: 13 },
                                         callback: function (value, index, ticks) {
                                             const dateString = this.getLabelForValue(value);
+                                            // Use parseISO to correctly parse ISO 8601 strings (like "YYYY-MM-DDTHH:MM:SS")
                                             const date = parseISO(dateString);
                                             if (isNaN(date.getTime())) {
                                                 return '';
@@ -178,6 +180,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                     userEmail={userEmail}
                     userSubscriptions={userSubscriptions}
                     setUserSubscriptions={setUserSubscriptions}
+                    enableEmailNotifications={enableEmailNotifications}
                 />
             )}
         </>

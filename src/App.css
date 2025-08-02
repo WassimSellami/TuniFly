@@ -12,6 +12,7 @@
   --secondary-button-bg: #f0f0f0;
   --secondary-button-text: #333;
   --success-button-bg: #28a745;
+  /* Used for Activate */
   --error-text: red;
   --input-background: #ffffff;
   --input-text: #333;
@@ -20,6 +21,23 @@
   --chart-title-color: #333333;
   --chart-axis-title-color: #555555;
   --chart-axis-tick-color: #777777;
+
+  /* New colors for delete button/messages */
+  --delete-button-bg: #dc3545;
+  --delete-button-hover: #c82333;
+
+  /* Colors for Activate/Deactivate buttons */
+  --activate-button-bg: #28a745;
+  /* Green */
+  --deactivate-button-bg: #ffc107;
+  /* Yellow/Orange */
+  --deactivate-button-text: #343a40;
+  /* Darker text for yellow */
+  --activate-button-hover: #218838;
+  --deactivate-button-hover: #e0a800;
+
+  --info-background: #e9ecef;
+  --info-text: #495057;
 }
 
 .dark-theme {
@@ -41,6 +59,22 @@
   --chart-title-color: #ffffff;
   --chart-axis-title-color: #b0b0b0;
   --chart-axis-tick-color: #909090;
+
+  /* New colors for delete button/messages in dark theme */
+  --delete-button-bg: #a83244;
+  --delete-button-hover: #c63d50;
+
+  /* Colors for Activate/Deactivate buttons in dark theme */
+  --activate-button-bg: #4caf50;
+  --deactivate-button-bg: #ffeb3b;
+  /* Brighter yellow */
+  --deactivate-button-text: #1a1a1a;
+  /* Darker text for brighter yellow */
+  --activate-button-hover: #3e8e41;
+  --deactivate-button-hover: #fbc02d;
+
+  --info-background: #3a3a3a;
+  --info-text: #c0c0c0;
 }
 
 * {
@@ -152,46 +186,34 @@ legend {
   justify-content: center;
 }
 
-/* --- NEW INPUT GROUP FOR LABELS AND INPUTS --- */
+/* --- INPUT GROUP FOR LABELS AND INPUTS (Email field) --- */
 .input-group {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  /* Space between label and input */
   margin-top: 1rem;
-  /* Space below legend */
   justify-content: center;
-  /* Center the label-input pair */
   width: 100%;
-  /* Take full width for centering */
 }
 
 .input-group label {
   flex-shrink: 0;
-  /* Prevent label from shrinking */
 }
 
 .input-group .text-input {
   flex-grow: 1;
-  /* Allow input to grow */
   max-width: 300px;
-  /* Limit max width for readability */
 }
 
-/* --- NEW STYLE FOR EMAIL CLARIFICATION TEXT --- */
+/* --- EMAIL CLARIFICATION TEXT --- */
 .email-clarification-text {
   text-align: center;
   font-size: 0.9em;
   color: var(--legend-color);
-  /* Use a slightly muted color */
   margin-top: 0.5rem;
-  /* Space above the text */
   padding: 0 1rem;
-  /* Horizontal padding to keep it within bounds */
   max-width: 700px;
-  /* Optional: limit width for readability */
   margin-left: auto;
-  /* Center the text */
   margin-right: auto;
 }
 
@@ -248,8 +270,12 @@ button:hover {
   display: block;
 }
 
-.submit-button:hover {
-  background-color: var(--primary-button-hover);
+.submit-button:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+  box-shadow: none;
 }
 
 
@@ -260,24 +286,21 @@ label {
   gap: 0.5rem;
 }
 
-input[type="radio"] {
+input[type="radio"],
+input[type="checkbox"] {
   width: 1.2em;
   height: 1.2em;
   accent-color: var(--primary-button-bg);
+  cursor: pointer;
 }
 
-/* --- TEXT INPUT SPECIFIC STYLING (Applies to email field) --- */
 input[type="text"],
 input[type="date"],
 input[type="number"],
 input[type="email"],
-/* Added email type */
 select,
 textarea,
-.text-input
-
-/* Apply to class as well */
-  {
+.text-input {
   background-color: var(--input-background) !important;
   color: var(--input-text) !important;
   border: 1px solid var(--input-border) !important;
@@ -327,4 +350,177 @@ textarea,
   font-size: 0.9em;
   color: var(--error-text);
   margin-left: 10px;
+}
+
+/* --- NEW STYLES FOR SUBSCRIPTION LIST AND NOTIFICATION CHECKBOX --- */
+.notification-checkbox-group {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.notification-checkbox-group label {
+  font-size: 1em;
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.user-subscriptions-list {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+/* Header with refresh button */
+.subscriptions-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 1.2em;
+  position: relative;
+  gap: 0.5rem;
+}
+
+.refresh-button {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--legend-color);
+  font-size: 1.1em;
+  line-height: 1;
+  padding: 0.4em 0.6em;
+  border-radius: 5px;
+  margin-left: 10px;
+  transition: all 0.2s ease-in-out;
+}
+
+.refresh-button:hover {
+  background-color: var(--secondary-button-bg);
+  color: var(--text-color);
+  transform: rotate(15deg) scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+
+.user-subscriptions-list ul {
+  list-style: none;
+  padding: 0;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.user-subscriptions-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-subscriptions-list li:hover {
+  background-color: var(--secondary-button-bg);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.subscription-status-icon {
+  font-size: 1.2em;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+.subscription-details {
+  font-size: 1em;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-grow: 1;
+}
+
+.sub-date {
+  font-size: 0.9em;
+  color: var(--legend-color);
+  margin-left: 0.5rem;
+}
+
+
+.sub-price {
+  font-weight: bold;
+  color: var(--primary-button-bg);
+  white-space: nowrap;
+  margin-left: 1rem;
+}
+
+.delete-sub-button {
+  background-color: var(--delete-button-bg);
+  color: var(--primary-button-text);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 1.2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+  cursor: pointer;
+}
+
+.delete-sub-button:hover {
+  background-color: var(--delete-button-hover);
+  transform: scale(1.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.no-subscriptions-message {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.95em;
+  color: var(--legend-color);
+  padding: 0 1rem;
+}
+
+/* Styles for subscription status text in modal */
+.active-status {
+  color: var(--activate-button-bg);
+  /* Green for Active */
+  font-weight: bold;
+}
+
+.inactive-status {
+  color: var(--deactivate-button-bg);
+  /* Yellow for Inactive */
+  font-weight: bold;
+}
+
+/* Styles for Activate/Deactivate buttons in modal */
+.activate-button {
+  background-color: var(--activate-button-bg);
+  color: var(--primary-button-text);
+}
+
+.activate-button:hover {
+  background-color: var(--activate-button-hover);
+}
+
+.deactivate-button {
+  background-color: var(--deactivate-button-bg);
+  color: var(--deactivate-button-text);
+  /* Use darker text for yellow button */
+}
+
+.deactivate-button:hover {
+  background-color: var(--deactivate-button-hover);
 }

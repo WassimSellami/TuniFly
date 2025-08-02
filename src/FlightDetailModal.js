@@ -1,10 +1,8 @@
-// src/FlightDetailModal.js
 import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import { fetchPriceHistory, createSubscription, updateSubscription, deleteSubscription, fetchSubscriptionByFlightAndEmail } from './api';
 import './FlightDetailModal.css';
 
-// Chart.js imports and registrations
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -18,7 +16,7 @@ import {
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import 'chartjs-adapter-date-fns';
-import { format as dateFormatFns } from 'date-fns';
+import { format as dateFormatFns, parseISO, format } from 'date-fns';
 
 ChartJS.register(
     CategoryScale,
@@ -32,8 +30,7 @@ ChartJS.register(
     ChartDataLabels
 );
 
-// Accept userEmail, userSubscriptions, setUserSubscriptions
-const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscriptions, setUserSubscriptions }) => {
+const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscriptions, setUserSubscriptions, enableEmailNotifications }) => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -41,7 +38,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
     const [submitting, setSubmitting] = useState(false);
     const [submitMessage, setSubmitMessage] = useState('');
 
-    const [existingSubscription, setExistingSubscription] = useState(null); // Stores the user's sub for this flight
+    const [existingSubscription, setExistingSubscription] = useState(null);
 
     useEffect(() => {
         const loadModalData = async () => {
@@ -51,7 +48,6 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                 return;
             }
 
-            // --- Load Price History ---
             setLoading(true);
             setError(null);
             setHistory([]);
@@ -65,28 +61,26 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                 setLoading(false);
             }
 
-            // --- Check for Existing Subscription ---
-            setExistingSubscription(null); // Clear previous sub
+            setExistingSubscription(null);
             if (userEmail) {
                 try {
                     const sub = await fetchSubscriptionByFlightAndEmail(flight.id, userEmail);
                     if (sub) {
                         setExistingSubscription(sub);
-                        setTargetPrice(sub.targetPrice); // Pre-fill with existing target price
+                        setTargetPrice(sub.targetPrice);
                     } else {
-                        setTargetPrice(''); // Clear if no existing sub
+                        setTargetPrice('');
                     }
                 } catch (err) {
                     console.error("Error fetching existing subscription:", err);
-                    // Don't block modal for this, just show an error message
                     setSubmitMessage("Could not check existing subscription status.");
                 }
             }
         };
         loadModalData();
-    }, [flight, userEmail]); // Re-run if flight or userEmail changes
+    }, [flight, userEmail]);
 
-    const handleSubscriptionAction = async (actionType) => {
+    const handleSubscriptionAction = async (actionType, newIsActive = undefined) => { // Added newIsActive parameter
         setSubmitting(true);
         setSubmitMessage('');
 
@@ -96,11 +90,21 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
             return;
         }
 
-        const payload = {
-            flightId: flight.id, // Use flightId as per backend schema
+        let payload = {
+            flightId: flight.id,
             email: userEmail,
-            targetPrice: parseFloat(targetPrice)
+            targetPrice: parseFloat(targetPrice),
+            enableEmailNotifications: enableEmailNotifications
         };
+
+        // If activating/deactivating, override isActive in payload
+        if (newIsActive !== undefined) {
+            payload.isActive = newIsActive;
+        } else if (existingSubscription) {
+            // For update, ensure isActive is carried over if not explicitly changed by newIsActive
+            payload.isActive = existingSubscription.isActive;
+        }
+
 
         try {
             let result;
@@ -108,27 +112,42 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                 result = await createSubscription(payload);
                 setSubmitMessage("Subscription created successfully!");
             } else if (actionType === 'update' && existingSubscription) {
-                result = await updateSubscription(existingSubscription.id, payload);
+                // For update, send only the fields that can be updated.
+                // Backend's `update_subscription` only accepts targetPrice, isActive, enableEmailNotifications
+                result = await updateSubscription(existingSubscription.id, {
+                    targetPrice: parseFloat(targetPrice),
+                    isActive: payload.isActive, // Pass the isActive from payload
+                    enableEmailNotifications: enableEmailNotifications
+                });
                 setSubmitMessage("Subscription updated successfully!");
             } else if (actionType === 'delete' && existingSubscription) {
                 result = await deleteSubscription(existingSubscription.id);
                 setSubmitMessage("Subscription deleted successfully!");
             }
 
-            // Update parent's subscriptions list
-            // This is a simplified way to re-sync. For more complex apps, consider context/redux.
             setUserSubscriptions(prevSubs => {
                 if (actionType === 'create') {
-                    return [...prevSubs, result]; // Add new sub
+                    return [...prevSubs, {
+                        ...result,
+                        flightDepartureAirportCode: flight.departureAirportCode,
+                        flightArrivalAirportCode: flight.arrivalAirportCode,
+                        flightDepartureDate: flight.departureDate,
+                        flightAirlineCode: flight.airlineCode,
+                        flightPrice: flight.price
+                    }];
                 } else if (actionType === 'update') {
-                    return prevSubs.map(sub => sub.id === result.id ? result : sub); // Update existing
+                    return prevSubs.map(sub => sub.id === result.id ? {
+                        ...sub,
+                        targetPrice: result.targetPrice,
+                        isActive: result.isActive, // Update isActive in the frontend state
+                        enableEmailNotifications: result.enableEmailNotifications
+                    } : sub);
                 } else if (actionType === 'delete') {
-                    return prevSubs.filter(sub => sub.id !== existingSubscription.id); // Remove deleted
+                    return prevSubs.filter(sub => sub.id !== existingSubscription.id);
                 }
                 return prevSubs;
             });
 
-            // Re-check existing subscription status for this flight
             const updatedSub = await fetchSubscriptionByFlightAndEmail(flight.id, userEmail);
             setExistingSubscription(updatedSub);
 
@@ -160,13 +179,13 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
     }, []);
 
     const chartData = filteredHistory.map(h => ({
-        x: new Date(h.timestamp),
+        x: parseISO(h.timestamp),
         y: h.price
     }));
 
     const airline = airlines.find(a => a.code === flight.airlineCode);
     const airlineName = airline ? airline.name : flight.airlineCode;
-    const departureDateFormatted = dateFormatFns(new Date(flight.departureDate), 'dd MMM yyyy');
+    const departureDateFormatted = format(parseISO(flight.departureDate), 'dd MMM yyyy');
 
 
     const data = {
@@ -210,7 +229,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
             tooltip: {
                 callbacks: {
                     title: function (context) {
-                        return context[0].label;
+                        return format(context[0].parsed.x, 'MMM d, yyyy, h:mm a');
                     },
                     label: function (context) {
                         return `Price: ${context.parsed.y} EUR`;
@@ -239,17 +258,11 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                 ticks: {
                     color: '#e0e0e0',
                     callback: function (value, index, ticks) {
-                        const dataPointTimestamps = chartData.map(d => d.x.getTime());
-                        const currentTickTimestamp = new Date(value).getTime();
-
-                        if (dataPointTimestamps.includes(currentTickTimestamp)) {
-                            const date = new Date(value);
-                            return [
-                                date.toLocaleDateString(),
-                                date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            ];
-                        }
-                        return '';
+                        const date = new Date(value);
+                        return [
+                            dateFormatFns(date, 'dd MMM'),
+                            dateFormatFns(date, 'HH:mm')
+                        ];
                     }
                 },
                 grid: { color: 'rgba(255, 255, 255, 0.1)' }
@@ -269,6 +282,8 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
             }
         }
     };
+
+    const isSubscriptionActive = existingSubscription?.isActive;
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -298,7 +313,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                     {!loading && !error && history.length === 0 && <p>No price history available for this flight.</p>}
                 </div>
 
-                <form className="subscription-form" onSubmit={(e) => { e.preventDefault(); /* Prevent default form submission on button click */ }}>
+                <form className="subscription-form" onSubmit={(e) => { e.preventDefault(); }}>
                     <h3>Track this Flight</h3>
                     {!userEmail ? (
                         <p className="submit-message error-message">Please enter your email in the search form to subscribe.</p>
@@ -306,7 +321,10 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                         <>
                             {existingSubscription ? (
                                 <p className="submit-message">
-                                    You are currently tracking this flight at <strong>{existingSubscription.targetPrice}€</strong>.
+                                    You are currently tracking this flight at <strong>{existingSubscription.targetPrice}€</strong>.<br />
+                                    Status: <span className={isSubscriptionActive ? 'active-status' : 'inactive-status'}>
+                                        {isSubscriptionActive ? 'Active' : 'Inactive'}
+                                    </span>
                                 </p>
                             ) : (
                                 <p>Get notified when the price drops below your target.</p>
@@ -325,15 +343,24 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                                 {existingSubscription ? (
                                     <>
                                         <button
-                                            type="button" // Change type to button to prevent form submission
+                                            type="button"
                                             className="subscribe-button update-button"
                                             onClick={() => handleSubscriptionAction('update')}
                                             disabled={submitting}
                                         >
                                             {submitting ? 'Updating...' : 'Update'}
                                         </button>
+                                        {/* New Activate/Deactivate Button */}
                                         <button
-                                            type="button" // Change type to button
+                                            type="button"
+                                            className={`subscribe-button ${isSubscriptionActive ? 'deactivate-button' : 'activate-button'}`}
+                                            onClick={() => handleSubscriptionAction('update', !isSubscriptionActive)} // Toggle isActive
+                                            disabled={submitting}
+                                        >
+                                            {submitting ? 'Updating...' : (isSubscriptionActive ? 'Deactivate' : 'Activate')}
+                                        </button>
+                                        <button
+                                            type="button"
                                             className="subscribe-button delete-button"
                                             onClick={() => handleSubscriptionAction('delete')}
                                             disabled={submitting}
@@ -343,7 +370,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                                     </>
                                 ) : (
                                     <button
-                                        type="button" // Change type to button
+                                        type="button"
                                         className="subscribe-button"
                                         onClick={() => handleSubscriptionAction('create')}
                                         disabled={submitting}

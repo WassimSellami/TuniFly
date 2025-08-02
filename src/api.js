@@ -1,4 +1,3 @@
-// src/api.js
 const BASE_URL = 'http://127.0.0.1:8000';
 
 export const fetchAirlines = async () => {
@@ -59,6 +58,20 @@ export const searchFlights = async (searchParams) => {
     }
 };
 
+export const fetchFlightById = async (flightId) => {
+    try {
+        const response = await fetch(`${BASE_URL}/flights/${flightId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Error fetching flight ${flightId}:`, error);
+        throw error;
+    }
+};
+
+
 export const fetchPriceHistory = async (flightId) => {
     try {
         const response = await fetch(`${BASE_URL}/price-history/flight/${flightId}`);
@@ -75,14 +88,77 @@ export const fetchPriceHistory = async (flightId) => {
     }
 };
 
-// --- NEW SUBSCRIPTION API CALLS ---
+// --- USER API CALLS ---
+
+export const fetchUserByEmail = async (email) => {
+    if (!email) return null;
+    try {
+        const response = await fetch(`${BASE_URL}/users/${encodeURIComponent(email)}`);
+        if (!response.ok) {
+            if (response.status === 404) {
+                return null; // User not found
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Error fetching user ${email}:`, error);
+        throw error;
+    }
+};
+
+export const createUser = async (userData) => {
+    try {
+        const response = await fetch(`${BASE_URL}/users/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error("Error creating user:", error);
+        throw error;
+    }
+};
+
+// Update existing function to explicitly call PUT for user settings
+export const updateUserEmailNotificationSetting = async (email, enabled) => {
+    try {
+        const response = await fetch(`${BASE_URL}/users/${encodeURIComponent(email)}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ enableNotificationsSetting: enabled }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Error updating user notification setting for ${email}:`, error);
+        throw error;
+    }
+};
+
+
+// --- SUBSCRIPTION API CALLS ---
 
 export const fetchSubscriptionsByEmail = async (email) => {
-    if (!email) return []; // Don't fetch if no email is provided
+    if (!email) return [];
     try {
         const response = await fetch(`${BASE_URL}/subscriptions/?email=${encodeURIComponent(email)}`);
         if (!response.ok) {
-            if (response.status === 404) { // No subscriptions found
+            if (response.status === 404) {
                 return [];
             }
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -99,7 +175,7 @@ export const fetchSubscriptionByFlightAndEmail = async (flightId, email) => {
     try {
         const response = await fetch(`${BASE_URL}/subscriptions/flight/${flightId}?email=${encodeURIComponent(email)}`);
         if (!response.ok) {
-            if (response.status === 404) { // Not found means not subscribed
+            if (response.status === 404) {
                 return null;
             }
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -107,25 +183,30 @@ export const fetchSubscriptionByFlightAndEmail = async (flightId, email) => {
         return await response.json();
     } catch (error) {
         console.error(`Error fetching subscription for flight ${flightId} and email ${email}:`, error);
-        return null; // Return null if fetching fails
+        return null;
     }
 };
 
 export const createSubscription = async (subscriptionData) => {
     try {
+        const payload = {
+            ...subscriptionData,
+            enableEmailNotifications: subscriptionData.enableEmailNotifications !== undefined ? subscriptionData.enableEmailNotifications : true
+        };
+
         const response = await fetch(`${BASE_URL}/subscriptions/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(subscriptionData),
+            body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
         }
-        return await response.json(); // Returns the created subscription object (SubscriptionOut)
+        return await response.json();
     } catch (error) {
         console.error("Error creating subscription:", error);
         throw error;
@@ -134,19 +215,24 @@ export const createSubscription = async (subscriptionData) => {
 
 export const updateSubscription = async (subscriptionId, subscriptionData) => {
     try {
+        const payload = {
+            ...subscriptionData,
+            enableEmailNotifications: subscriptionData.enableEmailNotifications !== undefined ? subscriptionData.enableEmailNotifications : true
+        };
+
         const response = await fetch(`${BASE_URL}/subscriptions/${subscriptionId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(subscriptionData),
+            body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
         }
-        return await response.json(); // Returns the updated subscription object
+        return await response.json();
     } catch (error) {
         console.error(`Error updating subscription ${subscriptionId}:`, error);
         throw error;
@@ -163,7 +249,7 @@ export const deleteSubscription = async (subscriptionId) => {
             const errorData = await response.json();
             throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
         }
-        return await response.json(); // Returns the deleted subscription object
+        return { success: true, message: `Subscription ${subscriptionId} deleted.` };
     } catch (error) {
         console.error(`Error deleting subscription ${subscriptionId}:`, error);
         throw error;
