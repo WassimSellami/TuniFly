@@ -1,3 +1,6 @@
+/* src/App.css */
+
+/* Define CSS variables for colors */
 :root {
   --background-color: #f4f7f6;
   --text-color: #333;
@@ -129,6 +132,16 @@ h2 {
   margin-bottom: 3rem;
 }
 
+/* New style for the instruction text below h2 */
+.click-details-text {
+  display: block;
+  font-size: 0.7em;
+  font-weight: normal;
+  color: var(--legend-color);
+  margin-top: 0.5rem;
+}
+
+/* --- FORM STYLES --- */
 form {
   margin-bottom: 30px;
   width: 100%;
@@ -178,6 +191,7 @@ legend {
   justify-content: center;
 }
 
+/* --- INPUT GROUP FOR LABELS AND INPUTS (Email field) --- */
 .input-group {
   display: flex;
   align-items: center;
@@ -196,6 +210,7 @@ legend {
   max-width: 300px;
 }
 
+/* --- EMAIL CLARIFICATION TEXT --- */
 .email-clarification-text {
   text-align: center;
   font-size: 0.9em;
@@ -207,6 +222,8 @@ legend {
   margin-right: auto;
 }
 
+
+/* --- BUTTONS --- */
 button {
   border: none;
   cursor: pointer;
@@ -266,6 +283,8 @@ button:hover {
   box-shadow: none;
 }
 
+
+/* --- FORM INPUTS & LABELS (Universal styling) --- */
 label {
   display: inline-flex;
   align-items: center;
@@ -310,6 +329,7 @@ textarea,
   gap: 0.5rem;
 }
 
+/* --- MESSAGES (Loading, Error, etc.) --- */
 .info-message,
 .error-message {
   text-align: center;
@@ -337,6 +357,7 @@ textarea,
   margin-left: 10px;
 }
 
+/* --- NEW STYLES FOR SUBSCRIPTION LIST AND NOTIFICATION CHECKBOX --- */
 .notification-checkbox-group {
   display: flex;
   justify-content: center;
@@ -357,6 +378,7 @@ textarea,
   border-top: 1px dashed var(--border-color);
 }
 
+/* Header with refresh button */
 .subscriptions-header {
   display: flex;
   justify-content: center;
@@ -385,6 +407,7 @@ textarea,
   transform: rotate(15deg) scale(1.05);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+
 
 .user-subscriptions-list ul {
   list-style: none;
@@ -433,6 +456,7 @@ textarea,
   color: var(--legend-color);
   margin-left: 0.5rem;
 }
+
 
 .sub-price {
   font-weight: bold;
@@ -537,4 +561,17 @@ textarea,
   font-size: 0.85em;
   color: var(--legend-color);
   margin-top: 1rem;
+}
+
+/* Chart card margin for spacing between individual route charts */
+.chart-card {
+  margin-bottom: 4rem;
+  /* Increased margin bottom for more space */
+}
+
+/* Specific styling for the chart title area to push the next chart down */
+.chart-card .chartjs-render-monitor {
+  /* Target the canvas parent directly for extra space */
+  margin-bottom: 2rem;
+  /* Add more space below each chart canvas */
 }

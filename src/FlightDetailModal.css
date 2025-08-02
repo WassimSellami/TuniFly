@@ -1,4 +1,3 @@
-/* src/FlightDetailModal.css */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -23,6 +22,9 @@
     overflow-y: auto;
     position: relative;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    /* Ensure content inside modal is generally centered */
+    text-align: center;
+    /* This is a general fallback for block-level text */
 }
 
 .modal-close-button {
@@ -41,6 +43,8 @@
     margin-top: 0;
     margin-bottom: 1rem;
     font-size: 1.8rem;
+    text-align: center;
+    /* Ensure title is centered */
 }
 
 .flight-info {
@@ -50,9 +54,11 @@
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border-color, #383838);
-    /* --- ADD SPACE BELOW FLIGHT-INFO --- */
     margin-bottom: 2rem;
-    /* Add more space below the flight info section */
+    justify-content: center;
+    /* Center flex items horizontally */
+    text-align: initial;
+    /* Reset text-align for span elements if needed */
 }
 
 .flight-info .current-price {
@@ -63,38 +69,54 @@
 
 .modal-chart-container {
     height: 300px;
-    /* --- ADD SPACE BELOW CHART CONTAINER --- */
     margin-bottom: 2rem;
-    /* Ensure space below the chart */
-    /* --- ADD SPACE ABOVE CHART CONTAINER (if needed, this depends on h2 margin) --- */
     margin-top: 1.5rem;
-    /* Add some space between flight-info and chart */
+}
+
+.subscription-form {
+    text-align: center;
+    /* Center the form content */
 }
 
 .subscription-form h3 {
     margin-bottom: 0.5rem;
+    text-align: center;
+    /* Ensure h3 is centered */
 }
 
 .subscription-form p {
     margin-bottom: 1rem;
     color: var(--legend-color, #c0c0c0);
+    text-align: center;
+    /* Ensure paragraphs are centered */
 }
 
 .subscription-form .form-group {
     display: flex;
+    flex-wrap: wrap;
+    /* Allow wrapping on smaller screens */
     gap: 1rem;
+    justify-content: center;
+    /* Center buttons and input */
+    margin-bottom: 1rem;
+    /* Space below the form group */
 }
 
 .target-price-input {
-    flex-grow: 1;
+    /* flex-grow: 1; - removed this, as it can make it too wide if there's space */
+    max-width: 200px;
+    /* Constrain width for better centering */
     background-color: var(--input-background) !important;
     color: var(--input-text) !important;
     border: 1px solid var(--input-border) !important;
     padding: 0.75rem !important;
     border-radius: 8px !important;
     font-size: 1rem !important;
+    text-align: center;
+    /* Ensure text inside input is centered */
 }
 
+/* Ensure buttons are properly styled from App.css */
 .subscribe-button {
     background-color: var(--primary-accent, #007BFF) !important;
     color: white;
@@ -110,4 +132,18 @@
     margin-top: 1rem;
     text-align: center;
     font-weight: 500;
+}
+
+/* Single point message for the chart (already has centering styles) */
+.single-point-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+/* Book now section (already has centering styles from App.css, but ensure no conflict) */
+.book-now-section {
+    text-align: center;
+    /* Ensure section content is centered */
 }

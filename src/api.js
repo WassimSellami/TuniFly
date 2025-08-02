@@ -71,7 +71,6 @@ export const fetchFlightById = async (flightId) => {
     }
 };
 
-
 export const fetchPriceHistory = async (flightId) => {
     try {
         const response = await fetch(`${BASE_URL}/price-history/flight/${flightId}`);
@@ -88,7 +87,23 @@ export const fetchPriceHistory = async (flightId) => {
     }
 };
 
-// --- USER API CALLS ---
+// NEW: API call for min/max price
+export const fetchMinMaxPrice = async (flightId) => {
+    try {
+        const response = await fetch(`${BASE_URL}/price-history/flight/${flightId}/min-max`);
+        if (!response.ok) {
+            if (response.status === 404) {
+                return { minPrice: null, maxPrice: null, flightId: flightId };
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Error fetching min/max price for flight ${flightId}:`, error);
+        return { minPrice: null, maxPrice: null, flightId: flightId };
+    }
+};
+
 
 export const fetchUserByEmail = async (email) => {
     if (!email) return null;
@@ -96,7 +111,7 @@ export const fetchUserByEmail = async (email) => {
         const response = await fetch(`${BASE_URL}/users/${encodeURIComponent(email)}`);
         if (!response.ok) {
             if (response.status === 404) {
-                return null; // User not found
+                return null;
             }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -128,7 +143,6 @@ export const createUser = async (userData) => {
     }
 };
 
-// Update existing function to explicitly call PUT for user settings
 export const updateUserEmailNotificationSetting = async (email, enabled) => {
     try {
         const response = await fetch(`${BASE_URL}/users/${encodeURIComponent(email)}`, {
@@ -149,9 +163,6 @@ export const updateUserEmailNotificationSetting = async (email, enabled) => {
         throw error;
     }
 };
-
-
-// --- SUBSCRIPTION API CALLS ---
 
 export const fetchSubscriptionsByEmail = async (email) => {
     if (!email) return [];
