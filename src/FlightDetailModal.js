@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import { Line } from 'react-chartjs-2';
 import { fetchPriceHistory, createSubscription, updateSubscription, deleteSubscription, fetchSubscriptionByFlightAndEmail } from './api';
 import './FlightDetailModal.css';
@@ -40,6 +40,16 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
 
     const [existingSubscription, setExistingSubscription] = useState(null);
 
+    // Re-declare capitalizeWords here for use in this component, or pass it as prop
+    const capitalizeWords = useCallback((str) => {
+        if (!str) return '';
+        return str.toLowerCase().split(' ').map(word => {
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        }).join(' ').split('-').map(word => {
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        }).join('-');
+    }, []);
+
     useEffect(() => {
         const loadModalData = async () => {
             if (!flight || !flight.id) {
@@ -80,7 +90,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
         loadModalData();
     }, [flight, userEmail]);
 
-    const handleSubscriptionAction = async (actionType, newIsActive = undefined) => { // Added newIsActive parameter
+    const handleSubscriptionAction = async (actionType, newIsActive = undefined) => {
         setSubmitting(true);
         setSubmitMessage('');
 
@@ -97,11 +107,9 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
             enableEmailNotifications: enableEmailNotifications
         };
 
-        // If activating/deactivating, override isActive in payload
         if (newIsActive !== undefined) {
             payload.isActive = newIsActive;
         } else if (existingSubscription) {
-            // For update, ensure isActive is carried over if not explicitly changed by newIsActive
             payload.isActive = existingSubscription.isActive;
         }
 
@@ -112,11 +120,9 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                 result = await createSubscription(payload);
                 setSubmitMessage("Subscription created successfully!");
             } else if (actionType === 'update' && existingSubscription) {
-                // For update, send only the fields that can be updated.
-                // Backend's `update_subscription` only accepts targetPrice, isActive, enableEmailNotifications
                 result = await updateSubscription(existingSubscription.id, {
                     targetPrice: parseFloat(targetPrice),
-                    isActive: payload.isActive, // Pass the isActive from payload
+                    isActive: payload.isActive,
                     enableEmailNotifications: enableEmailNotifications
                 });
                 setSubmitMessage("Subscription updated successfully!");
@@ -139,7 +145,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                     return prevSubs.map(sub => sub.id === result.id ? {
                         ...sub,
                         targetPrice: result.targetPrice,
-                        isActive: result.isActive, // Update isActive in the frontend state
+                        isActive: result.isActive,
                         enableEmailNotifications: result.enableEmailNotifications
                     } : sub);
                 } else if (actionType === 'delete') {
@@ -184,8 +190,10 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
     }));
 
     const airline = airlines.find(a => a.code === flight.airlineCode);
-    const airlineName = airline ? airline.name : flight.airlineCode;
+    const airlineName = airline ? capitalizeWords(airline.name) : flight.airlineCode; // Applied capitalizeWords
     const departureDateFormatted = format(parseISO(flight.departureDate), 'dd MMM yyyy');
+
+    // Removed the frontend generateNouvelairBookingUrl function
 
 
     const data = {
@@ -350,11 +358,10 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                                         >
                                             {submitting ? 'Updating...' : 'Update'}
                                         </button>
-                                        {/* New Activate/Deactivate Button */}
                                         <button
                                             type="button"
                                             className={`subscribe-button ${isSubscriptionActive ? 'deactivate-button' : 'activate-button'}`}
-                                            onClick={() => handleSubscriptionAction('update', !isSubscriptionActive)} // Toggle isActive
+                                            onClick={() => handleSubscriptionAction('update', !isSubscriptionActive)}
                                             disabled={submitting}
                                         >
                                             {submitting ? 'Updating...' : (isSubscriptionActive ? 'Deactivate' : 'Activate')}
@@ -383,6 +390,28 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                         </>
                     )}
                 </form>
+
+                {/* Use flight.bookingUrl directly */}
+                {flight.bookingUrl ? (
+                    <div className="book-now-section">
+                        <h3>Ready to Book?</h3>
+                        <a
+                            href={flight.bookingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="book-now-button"
+                        >
+                            Book Now ✈️
+                        </a>
+                        <p className="book-now-info-text">
+                            (This link leads to the airline's booking page. Prices may vary.)
+                        </p>
+                    </div>
+                ) : (
+                    <div className="book-now-section">
+                        <p className="book-now-info-text">Booking links currently not available for this flight's airline or specific route. Please search for this flight on your preferred airline's website.</p>
+                    </div>
+                )}
             </div>
         </div>
     );

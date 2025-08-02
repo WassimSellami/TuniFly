@@ -61,6 +61,20 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
     const [userCheckLoading, setUserCheckLoading] = useState(true);
     const [userActionError, setUserActionError] = useState(null);
 
+    const capitalizeWords = useCallback((str) => {
+        if (!str) return '';
+        return str.toLowerCase().split(' ').map(word => {
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        }).join(' ').split('-').map(word => {
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        }).join('-');
+    }, []);
+
+    const getAirportDisplayName = useCallback((code) => {
+        const airport = allAirports.find(a => a.code === code);
+        return airport ? `${capitalizeWords(airport.name)} (${code})` : code;
+    }, [allAirports, capitalizeWords]);
+
 
     useEffect(() => {
         const checkUser = async () => {
@@ -82,9 +96,10 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                     setUserExists(false);
                     setEnableEmailNotifications(true);
                 }
-            } catch (err) {
+            }
+            catch (err) {
                 console.error("Failed to check user existence:", err);
-                setUserActionError("Could not verify user status.");
+                setUserActionError("Could not verify user status. " + err.message);
                 setUserExists(false);
             } finally {
                 setUserCheckLoading(false);
@@ -180,7 +195,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
 
 
     useEffect(() => {
-        if (!direction) {
+        if (!direction || allAirports.length === 0) {
             setPossibleRoutes([]);
             setSelectedRoutes([]);
             return;
@@ -202,7 +217,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         }
         setPossibleRoutes(routes);
         setSelectedRoutes([]);
-    }, [direction, tunisianAirports, germanAirports]);
+    }, [direction, tunisianAirports, germanAirports, allAirports]);
 
     const handleDirectionChange = (e) => {
         setDirection(e.target.value);
@@ -451,7 +466,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                                                     {sub.isActive ? '🟢' : '⚫'}
                                                 </span>
                                                 <span className="subscription-details">
-                                                    {sub.flightDepartureAirportCode} → {sub.flightArrivalAirportCode}
+                                                    {getAirportDisplayName(sub.flightDepartureAirportCode)} → {getAirportDisplayName(sub.flightArrivalAirportCode)}
                                                     {sub.flightDepartureDate && (
                                                         <span className="sub-date">
                                                             on {format(new Date(sub.flightDepartureDate), 'dd MMM')}
@@ -504,16 +519,21 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                     <fieldset className="route-selection-section full-span">
                         <legend>2. Select Routes (Multi-select)</legend>
                         <div className="button-group">
-                            {possibleRoutes.map(route => (
-                                <button
-                                    key={route}
-                                    type="button"
-                                    onClick={() => handleRouteToggle(route)}
-                                    className={`route-button ${selectedRoutes.includes(route) ? 'selected' : ''}`}
-                                >
-                                    {route.replace('-', ' -> ')}
-                                </button>
-                            ))}
+                            {possibleRoutes.map(route => {
+                                const [depCode, arrCode] = route.split('-');
+                                const depName = getAirportDisplayName(depCode);
+                                const arrName = getAirportDisplayName(arrCode);
+                                return (
+                                    <button
+                                        key={route}
+                                        type="button"
+                                        onClick={() => handleRouteToggle(route)}
+                                        className={`route-button ${selectedRoutes.includes(route) ? 'selected' : ''}`}
+                                    >
+                                        {depName} → {arrName}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </fieldset>
                 )}
@@ -564,7 +584,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                                 onClick={() => handleAirlineToggle(airline.code)}
                                 className={`airline-button ${selectedAirlineCodes.includes(airline.code) ? 'selected' : ''}`}
                             >
-                                {airline.name} ({airline.code})
+                                {capitalizeWords(airline.name)} ({airline.code})
                             </button>
                         ))}
                     </div>

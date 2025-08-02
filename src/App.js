@@ -5,19 +5,16 @@ import './App.css';
 
 function App() {
   const [userEmail, setUserEmail] = useState(() => {
-    // Initialize email from localStorage on first load
     return localStorage.getItem('userEmail') || '';
   });
   const [userSubscriptions, setUserSubscriptions] = useState([]);
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(false);
   const [subscriptionsError, setSubscriptionsError] = useState(null);
 
-  // Effect to save email to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('userEmail', userEmail);
   }, [userEmail]);
 
-  // Effect to fetch subscriptions when email changes or on initial load if email exists
   useEffect(() => {
     const loadSubscriptions = async () => {
       if (userEmail) {
@@ -33,14 +30,14 @@ function App() {
           setSubscriptionsLoading(false);
         }
       } else {
-        setUserSubscriptions([]); // Clear subscriptions if email is empty
+        setUserSubscriptions([]);
       }
     };
     loadSubscriptions();
   }, [userEmail]);
 
   return (
-    <div className="App dark-theme"> {/* Ensure dark-theme class is applied as per your request */}
+    <div className="App dark-theme">
       <main className="main-content">
         <FlightSearchForm
           userEmail={userEmail}

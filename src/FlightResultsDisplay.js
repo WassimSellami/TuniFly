@@ -41,7 +41,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
     return (
         <>
             <div className="flight-results-container">
-                <h2>Flight Price Trends</h2>
+                <h2>Available Flights: Click for more details</h2>
                 <div className="results-grid">
                     {Object.keys(groupedFlights).sort().map(route => {
                         const flightsForRoute = groupedFlights[route];
