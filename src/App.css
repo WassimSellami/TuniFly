@@ -36,10 +36,13 @@
   --info-background: #e9ecef;
   --info-text: #495057;
 
-  /* NEW: Colors for inline messages */
   --inline-error-color: #dc3545;
   --inline-success-color: #28a745;
   --inline-info-color: #007bff;
+
+  --inline-error-color-rgb: 220, 53, 69;
+  --inline-success-color-rgb: 40, 167, 69;
+  --inline-info-color-rgb: 0, 123, 255;
 }
 
 .dark-theme {
@@ -77,7 +80,6 @@
   --info-background: #3a3a3a;
   --info-text: #c0c0c0;
 
-  /* NEW: Colors for inline messages in dark theme */
   --inline-error-color: #ff8888;
   --inline-success-color: #4caf50;
   --inline-info-color: #5a8eec;
@@ -228,7 +230,6 @@ legend {
   margin-right: auto;
 }
 
-
 .feedback-message,
 .error-message-inline,
 .success-message-inline {
@@ -365,12 +366,110 @@ textarea,
   }
 }
 
-.date-picker-group>div {
+/* Removed specific date-picker-group>div style as DatePicker is now single */
+.date-picker-group {
+  /* Keep this for general padding/alignment if needed */
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  /* Center the single date picker */
+  margin-top: 1rem;
+  padding: 0 1rem;
+  /* Add some padding if content too wide */
 }
 
+/* NEW: Date range slider container styles */
+.date-range-slider-container {
+  width: 90%;
+  /* Adjust width as needed */
+  max-width: 600px;
+  /* Max width for larger screens */
+  margin: 1rem auto;
+  /* Center the container */
+  padding: 1rem 0;
+  /* Vertical padding */
+  position: relative;
+  /* For custom labels if any */
+}
+
+.selected-date-display {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  font-size: 1.1em;
+  color: var(--text-color);
+}
+
+
+/* RC-Slider Custom Theming for Dark Mode */
+.rc-slider {
+  height: 40px;
+  /* More vertical space for the slider */
+  padding: 10px 0;
+  /* Padding for tracks and handles */
+  margin-top: 20px;
+  /* Space between date display and slider */
+  box-sizing: border-box;
+  /* Include padding in element's total width and height */
+}
+
+.rc-slider-track {
+  background-color: var(--primary-button-bg) !important;
+  /* Blue track */
+  height: 8px !important;
+  /* Thicker track */
+  border-radius: 4px !important;
+}
+
+.rc-slider-rail {
+  background-color: var(--border-color) !important;
+  /* Grey rail */
+  height: 8px !important;
+  /* Thicker rail */
+  border-radius: 4px !important;
+}
+
+.rc-slider-handle {
+  background-color: var(--primary-button-bg) !important;
+  /* Blue handle */
+  border-color: var(--primary-button-bg) !important;
+  /* Blue handle border */
+  width: 24px !important;
+  /* Larger handle */
+  height: 24px !important;
+  /* Larger handle */
+  margin-top: -8px !important;
+  /* Center handle vertically on track */
+  box-shadow: 0 0 0 4px rgba(var(--primary-button-bg-rgb), 0.3) !important;
+  /* Glow on handle */
+  transition: all 0.2s ease-in-out;
+}
+
+.rc-slider-handle:hover {
+  transform: translateY(-2px);
+  /* Slight lift on hover */
+  box-shadow: 0 0 0 6px rgba(var(--primary-button-bg-rgb), 0.5) !important;
+  /* More pronounced glow */
+}
+
+.rc-slider-mark-text {
+  color: var(--legend-color) !important;
+  /* Mark text color */
+  font-size: 0.85em !important;
+  margin-top: 8px;
+  /* Space between mark and slider */
+}
+
+/* Optional: Define RGB for primary button for rgba() use */
+:root {
+  --primary-button-bg-rgb: 0, 123, 255;
+}
+
+.dark-theme {
+  --primary-button-bg-rgb: 90, 142, 236;
+}
+
+
+/* --- MESSAGES (Loading, Error, etc.) --- */
 .info-message,
 .error-message {
   text-align: center;
@@ -398,6 +497,7 @@ textarea,
   margin-left: 10px;
 }
 
+/* --- NEW STYLES FOR SUBSCRIPTION LIST AND NOTIFICATION CHECKBOX --- */
 .notification-checkbox-group {
   display: flex;
   justify-content: center;
@@ -418,6 +518,7 @@ textarea,
   border-top: 1px dashed var(--border-color);
 }
 
+/* Header with refresh button */
 .subscriptions-header {
   display: flex;
   justify-content: center;

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchAirlines, fetchAirports, searchFlights, deleteSubscription, updateUserEmailNotificationSetting, fetchFlightById, fetchSubscriptionsByEmail, fetchUserByEmail, createUser } from './api';
-import { isBefore, addDays, format } from 'date-fns';
+import { isBefore, addDays, format, differenceInDays, addMonths, startOfDay } from 'date-fns'; // Added addMonths
 import FlightResultsDisplay from './FlightResultsDisplay';
-import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import './CustomDatePicker.css';
 import FlightDetailModal from './FlightDetailModal';
+
+import Slider from 'rc-slider';
+import 'rc-slider/assets/index.css';
 
 import {
     Chart as ChartJS,
@@ -42,8 +44,20 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
     const [possibleRoutes, setPossibleRoutes] = useState([]);
     const [selectedRoutes, setSelectedRoutes] = useState([]);
 
-    const [startDate, setStartDate] = useState(new Date());
-    const [endDate, setEndDate] = useState(addDays(new Date(), 7));
+    const minSelectableDate = startOfDay(new Date()); // Today, start of day
+    // CHANGED: Max date for slider to 3 months from now
+    const maxSelectableDate = addMonths(minSelectableDate, 3);
+
+    // Initial slider values: from 0 days (today) to approx 1 month (30 days)
+    const initialStartDays = 0;
+    const initialEndDays = differenceInDays(addMonths(minSelectableDate, 1), minSelectableDate); // Calculate days for 1 month
+
+    const [dateRangeSliderValues, setDateRangeSliderValues] = useState([initialStartDays, initialEndDays]);
+
+    // Derived state for actual dates
+    const [startDate, setStartDate] = useState(addDays(minSelectableDate, initialStartDays));
+    const [endDate, setEndDate] = useState(addDays(minSelectableDate, initialEndDays));
+
 
     const [selectedAirlineCodes, setSelectedAirlineCodes] = useState([]);
 
@@ -62,7 +76,6 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
     const [userActionError, setUserActionError] = useState(null);
 
     const [formErrors, setFormErrors] = useState({});
-    // Removed formSubmitMessage state
 
 
     const capitalizeWords = useCallback((str) => {
@@ -263,10 +276,9 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
             errors.selectedRoutes = "Please select at least one route.";
         }
         if (!startDate || !endDate) {
-            errors.dateRange = "Please select both a start and end date.";
+            errors.dateRange = "Please select a date range.";
         } else {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            const today = startOfDay(new Date());
             if (isBefore(endDate, startDate)) {
                 errors.dateRange = "End date cannot be before start date.";
             }
@@ -282,10 +294,8 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // Removed setFormSubmitMessage(null); as formSubmitMessage state is removed
 
         if (!validateForm()) {
-            // No general message here, just rely on inline errors
             return;
         }
 
@@ -318,11 +328,9 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
             }, {});
 
             setSearchResults(groupedResults);
-            // No general success message after search, data display is enough confirmation
 
         } catch (err) {
             setError("Failed to fetch flights. " + err.message);
-            // setFormSubmitMessage({ type: 'error', message: "Failed to load flights. " + err.message }); // Removed
         } finally {
             setLoading(false);
         }
@@ -392,12 +400,39 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         }
     };
 
+    const onSliderChange = useCallback((values) => {
+        const [startDays, endDays] = values;
+        const newStartDate = addDays(minSelectableDate, startDays); // Use addDays from date-fns
+        const newEndDate = addDays(minSelectableDate, endDays);     // Use addDays from date-fns
+        setStartDate(newStartDate);
+        setEndDate(newEndDate);
+        setDateRangeSliderValues(values);
+        setFormErrors(prev => ({ ...prev, dateRange: null }));
+    }, [minSelectableDate]);
+
+    const generateMarks = useCallback(() => {
+        const marks = {};
+        const totalDays = differenceInDays(maxSelectableDate, minSelectableDate);
+        const numIntervals = 4; // Aim for about 4-5 labels, e.g., start, 1-2 months, end
+        const intervalDays = Math.ceil(totalDays / numIntervals);
+
+        for (let i = 0; i <= totalDays; i += intervalDays) {
+            const date = addDays(minSelectableDate, i);
+            marks[i] = format(date, 'dd MMM yyyy'); // CHANGED: Date format for marks
+        }
+        // Ensure the last date is always a mark if it wasn't added by interval
+        if (!(totalDays in marks)) {
+            marks[totalDays] = format(maxSelectableDate, 'dd MMM yyyy'); // CHANGED: Date format for marks
+        }
+        return marks;
+    }, [minSelectableDate, maxSelectableDate]);
+
 
     const loadingMessage = loading && searchResults === null && error === null && (
         <div className="info-message">Searching flights...</div>
     );
     const errorMessage = error && (!allAirports.length || !allAirlines.length) && (
-        <div className="info-message error-message">Error: {error}</div>
+        <div className="info-message">Error: {error}</div>
     );
     const noFlightsMessage = searchResults && Object.keys(searchResults).length === 0 && !loading && (
         <div className="info-message">No flights found for your selected criteria.</div>
@@ -555,43 +590,27 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
 
                 <fieldset className="date-range-section full-span">
                     <legend>3. Select Date Range</legend>
-                    <div className="date-picker-group">
-                        <div>
-                            <label htmlFor="startDate">Start Date:</label>
-                            <DatePicker
-                                selected={startDate}
-                                onChange={(date) => {
-                                    setStartDate(date);
-                                    setFormErrors(prev => ({ ...prev, dateRange: null }));
-                                }}
-                                selectsStart
-                                startDate={startDate}
-                                endDate={endDate}
-                                minDate={new Date()}
-                                dateFormat="yyyy-MM-dd"
-                                className="custom-datepicker-input"
-                                popperPlacement="bottom-start"
-                                showPopperArrow={false}
-                            />
+                    <div className="date-range-slider-container">
+                        <div className="selected-date-display">
+                            <span>Start: {format(startDate, 'dd MMM yyyy')}</span> {/* CHANGED: Date format */}
+                            <span>End: {format(endDate, 'dd MMM yyyy')}</span> {/* CHANGED: Date format */}
                         </div>
-                        <div>
-                            <label htmlFor="endDate">End Date:</label>
-                            <DatePicker
-                                selected={endDate}
-                                onChange={(date) => {
-                                    setEndDate(date);
-                                    setFormErrors(prev => ({ ...prev, dateRange: null }));
-                                }}
-                                selectsEnd
-                                startDate={startDate}
-                                endDate={endDate}
-                                minDate={startDate}
-                                dateFormat="yyyy-MM-dd"
-                                className="custom-datepicker-input"
-                                popperPlacement="bottom-end"
-                                showPopperArrow={false}
-                            />
-                        </div>
+                        <Slider
+                            range
+                            min={0}
+                            max={differenceInDays(maxSelectableDate, minSelectableDate)} // Max range is now 3 months
+                            value={dateRangeSliderValues}
+                            onChange={onSliderChange}
+                            marks={generateMarks()}
+                            step={1}
+                            trackStyle={[{ backgroundColor: 'var(--primary-button-bg)' }]}
+                            handleStyle={[
+                                { backgroundColor: 'var(--primary-button-bg)', borderColor: 'var(--primary-button-bg)' },
+                                { backgroundColor: 'var(--primary-button-bg)', borderColor: 'var(--primary-button-bg)' }
+                            ]}
+                            railStyle={{ backgroundColor: 'var(--border-color)' }}
+                            dotStyle={{ borderColor: 'var(--border-color)' }}
+                        />
                     </div>
                     {formErrors.dateRange && <p className="error-message-inline">{formErrors.dateRange}</p>}
                 </fieldset>
@@ -616,7 +635,6 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
             <button type="submit" className="submit-button" onClick={handleSubmit} disabled={!userExists}>
                 Show Flights
             </button>
-            {/* Removed the general form submission message here */}
 
             {loadingMessage}
             {errorMessage}
