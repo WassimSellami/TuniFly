@@ -380,7 +380,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
 
     return (
         <div className="flight-search-container">
-            <h1>Welcome to Tunisia Flights Helper !</h1>
+            <h1>Welcome to Tunisia Flights Tracker !</h1>
             <form onSubmit={handleSubmit} className="form-grid">
                 <fieldset className="email-section full-span">
                     <legend>0. Flight Price Alerts Subscription</legend>
