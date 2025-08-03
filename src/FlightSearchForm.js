@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchAirlines, fetchAirports, searchFlights, deleteSubscription, updateUserEmailNotificationSetting, fetchFlightById, fetchSubscriptionsByEmail, fetchUserByEmail, createUser } from './api';
-import { isBefore, addDays, format, differenceInDays, addMonths, startOfDay } from 'date-fns'; // Added addMonths
+import { isBefore, addDays, format, differenceInDays, addMonths, startOfDay } from 'date-fns';
 import FlightResultsDisplay from './FlightResultsDisplay';
 import 'react-datepicker/dist/react-datepicker.css';
 import './CustomDatePicker.css';
 import FlightDetailModal from './FlightDetailModal';
-
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
-
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -33,50 +31,31 @@ ChartJS.register(
 const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscriptionsLoading, subscriptionsError, setUserSubscriptions }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
     const [allAirports, setAllAirports] = useState([]);
     const [allAirlines, setAllAirlines] = useState([]);
-
-    const [direction, setDirection] = useState('');
+    const [isTunisiaDeparture, setIsTunisiaDeparture] = useState(true);
     const [tunisianAirports, setTunisianAirports] = useState([]);
     const [germanAirports, setGermanAirports] = useState([]);
-
-    const [possibleRoutes, setPossibleRoutes] = useState([]);
-    const [selectedRoutes, setSelectedRoutes] = useState([]);
-
-    const minSelectableDate = startOfDay(new Date()); // Today, start of day
-    // CHANGED: Max date for slider to 3 months from now
+    const [selectedDepartureAirportCodes, setSelectedDepartureAirportCodes] = useState([]);
+    const [selectedArrivalAirportCodes, setSelectedArrivalAirportCodes] = useState([]);
+    const minSelectableDate = startOfDay(new Date());
     const maxSelectableDate = addMonths(minSelectableDate, 3);
-
-    // Initial slider values: from 0 days (today) to approx 1 month (30 days)
     const initialStartDays = 0;
-    const initialEndDays = differenceInDays(addMonths(minSelectableDate, 1), minSelectableDate); // Calculate days for 1 month
-
+    const initialEndDays = differenceInDays(addMonths(minSelectableDate, 1), minSelectableDate);
     const [dateRangeSliderValues, setDateRangeSliderValues] = useState([initialStartDays, initialEndDays]);
-
-    // Derived state for actual dates
     const [startDate, setStartDate] = useState(addDays(minSelectableDate, initialStartDays));
     const [endDate, setEndDate] = useState(addDays(minSelectableDate, initialEndDays));
-
-
     const [selectedAirlineCodes, setSelectedAirlineCodes] = useState([]);
-
     const [searchResults, setSearchResults] = useState(null);
-
     const [enableEmailNotifications, setEnableEmailNotifications] = useState(true);
-
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedFlightFromSubscription, setSelectedFlightFromSubscription] = useState(null);
-
     const [displaySubscriptions, setDisplaySubscriptions] = useState([]);
     const [displaySubsLoading, setDisplaySubsLoading] = useState(false);
-
     const [userExists, setUserExists] = useState(false);
     const [userCheckLoading, setUserCheckLoading] = useState(true);
     const [userActionError, setUserActionError] = useState(null);
-
     const [formErrors, setFormErrors] = useState({});
-
 
     const capitalizeWords = useCallback((str) => {
         if (!str) return '';
@@ -92,7 +71,6 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         return airport ? `${capitalizeWords(airport.name)} (${code})` : code;
     }, [allAirports, capitalizeWords]);
 
-
     useEffect(() => {
         const checkUser = async () => {
             setUserCheckLoading(true);
@@ -103,7 +81,6 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                 setUserCheckLoading(false);
                 return;
             }
-
             try {
                 const user = await fetchUserByEmail(userEmail);
                 if (user) {
@@ -122,10 +99,8 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                 setUserCheckLoading(false);
             }
         };
-
         checkUser();
     }, [userEmail]);
-
 
     useEffect(() => {
         if (userEmail && userExists && !userCheckLoading) {
@@ -134,7 +109,6 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         }
     }, [enableEmailNotifications, userEmail, userExists, userCheckLoading]);
 
-
     useEffect(() => {
         const loadInitialData = async () => {
             try {
@@ -142,15 +116,12 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                     fetchAirlines(),
                     fetchAirports()
                 ]);
-
                 setAllAirlines(airlines);
                 setAllAirports(airports);
-
                 const tnAirports = airports.filter(a => a.country === 'TN');
                 const deAirports = airports.filter(a => a.country === 'DE');
                 setTunisianAirports(tnAirports);
                 setGermanAirports(deAirports);
-
             } catch (err) {
                 setError("Failed to load initial data. " + err.message);
             } finally {
@@ -166,7 +137,6 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
             setUserSubscriptions([]);
             return;
         }
-
         setDisplaySubsLoading(true);
         try {
             const rawSubs = await fetchSubscriptionsByEmail(userEmail);
@@ -210,47 +180,35 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         setUserSubscriptions(displaySubscriptions);
     }, [displaySubscriptions, setUserSubscriptions]);
 
-
-    useEffect(() => {
-        if (!direction || allAirports.length === 0) {
-            setPossibleRoutes([]);
-            setSelectedRoutes([]);
-            return;
-        }
-
-        const routes = [];
-        if (direction === 'TN-DE') {
-            tunisianAirports.forEach(tnA => {
-                germanAirports.forEach(deA => {
-                    routes.push(`${tnA.code}-${deA.code}`);
-                });
-            });
-        } else if (direction === 'DE-TN') {
-            germanAirports.forEach(deA => {
-                tunisianAirports.forEach(tnA => {
-                    routes.push(`${deA.code}-${tnA.code}`);
-                });
-            });
-        }
-        setPossibleRoutes(routes);
-        setSelectedRoutes([]);
-    }, [direction, tunisianAirports, germanAirports, allAirports]);
-
-    const handleDirectionChange = (e) => {
-        setDirection(e.target.value);
-        setFormErrors(prev => ({ ...prev, direction: null }));
+    const handleDepartureAirportToggle = (airportCode) => {
+        setSelectedDepartureAirportCodes(prev => {
+            const newCodes = prev.includes(airportCode)
+                ? prev.filter(code => code !== airportCode)
+                : [...prev, airportCode];
+            if (newCodes.length > 0) {
+                setFormErrors(prev => ({ ...prev, selectedDepartureAirportCodes: null }));
+            }
+            return newCodes;
+        });
     };
 
-    const handleRouteToggle = (route) => {
-        setSelectedRoutes(prev => {
-            const newSelectedRoutes = prev.includes(route)
-                ? prev.filter(r => r !== route)
-                : [...prev, route];
-            if (newSelectedRoutes.length > 0) {
-                setFormErrors(prev => ({ ...prev, selectedRoutes: null }));
+    const handleArrivalAirportToggle = (airportCode) => {
+        setSelectedArrivalAirportCodes(prev => {
+            const newCodes = prev.includes(airportCode)
+                ? prev.filter(code => code !== airportCode)
+                : [...prev, airportCode];
+            if (newCodes.length > 0) {
+                setFormErrors(prev => ({ ...prev, selectedArrivalAirportCodes: null }));
             }
-            return newSelectedRoutes;
+            return newCodes;
         });
+    };
+
+    const handleDirectionSwitch = () => {
+        setIsTunisiaDeparture(prev => !prev);
+        setSelectedDepartureAirportCodes([]);
+        setSelectedArrivalAirportCodes([]);
+        setFormErrors(prev => ({ ...prev, selectedDepartureAirportCodes: null, selectedArrivalAirportCodes: null }));
     };
 
     const handleAirlineToggle = (airlineCode) => {
@@ -269,11 +227,11 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         if (!userExists) {
             errors.userExists = "Please save your email address first to proceed with search.";
         }
-        if (!direction) {
-            errors.direction = "Please select a travel direction.";
+        if (selectedDepartureAirportCodes.length === 0) {
+            errors.selectedDepartureAirportCodes = "Please select at least one departure airport.";
         }
-        if (selectedRoutes.length === 0) {
-            errors.selectedRoutes = "Please select at least one route.";
+        if (selectedArrivalAirportCodes.length === 0) {
+            errors.selectedArrivalAirportCodes = "Please select at least one arrival airport.";
         }
         if (!startDate || !endDate) {
             errors.dateRange = "Please select a date range.";
@@ -286,38 +244,26 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                 errors.dateRange = "Start date cannot be before today's date.";
             }
         }
-
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
-    }, [userEmail, userExists, direction, selectedRoutes, startDate, endDate]);
-
+    }, [userEmail, userExists, selectedDepartureAirportCodes, selectedArrivalAirportCodes, startDate, endDate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         if (!validateForm()) {
             return;
         }
-
         setLoading(true);
         setError(null);
         setSearchResults(null);
-
         try {
-            const departureAirportCodes = selectedRoutes.map(route => route.split('-')[0]);
-            const arrivalAirportCodes = selectedRoutes.map(route => route.split('-')[1]);
-
-            const formattedStartDate = format(startDate, 'yyyy-MM-dd');
-            const formattedEndDate = format(endDate, 'yyyy-MM-dd');
-
             const flights = await searchFlights({
-                departureAirportCodes,
-                arrivalAirportCodes,
-                startDate: formattedStartDate,
-                endDate: formattedEndDate,
+                departureAirportCodes: selectedDepartureAirportCodes,
+                arrivalAirportCodes: selectedArrivalAirportCodes,
+                startDate: format(startDate, 'yyyy-MM-dd'),
+                endDate: format(endDate, 'yyyy-MM-dd'),
                 airlineCodes: selectedAirlineCodes
             });
-
             const groupedResults = flights.reduce((acc, flight) => {
                 const route = `${flight.departureAirportCode}-${flight.arrivalAirportCode}`;
                 if (!acc[route]) {
@@ -326,9 +272,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                 acc[route].push(flight);
                 return acc;
             }, {});
-
             setSearchResults(groupedResults);
-
         } catch (err) {
             setError("Failed to fetch flights. " + err.message);
         } finally {
@@ -375,7 +319,6 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
             setUserActionError("Please enter a valid email address.");
             return;
         }
-
         try {
             await createUser({
                 email: userEmail,
@@ -402,8 +345,8 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
 
     const onSliderChange = useCallback((values) => {
         const [startDays, endDays] = values;
-        const newStartDate = addDays(minSelectableDate, startDays); // Use addDays from date-fns
-        const newEndDate = addDays(minSelectableDate, endDays);     // Use addDays from date-fns
+        const newStartDate = addDays(minSelectableDate, startDays);
+        const newEndDate = addDays(minSelectableDate, endDays);
         setStartDate(newStartDate);
         setEndDate(newEndDate);
         setDateRangeSliderValues(values);
@@ -413,20 +356,17 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
     const generateMarks = useCallback(() => {
         const marks = {};
         const totalDays = differenceInDays(maxSelectableDate, minSelectableDate);
-        const numIntervals = 4; // Aim for about 4-5 labels, e.g., start, 1-2 months, end
+        const numIntervals = 4;
         const intervalDays = Math.ceil(totalDays / numIntervals);
-
         for (let i = 0; i <= totalDays; i += intervalDays) {
             const date = addDays(minSelectableDate, i);
-            marks[i] = format(date, 'dd MMM yyyy'); // CHANGED: Date format for marks
+            marks[i] = format(date, 'dd MMM yyyy');
         }
-        // Ensure the last date is always a mark if it wasn't added by interval
         if (!(totalDays in marks)) {
-            marks[totalDays] = format(maxSelectableDate, 'dd MMM yyyy'); // CHANGED: Date format for marks
+            marks[totalDays] = format(maxSelectableDate, 'dd MMM yyyy');
         }
         return marks;
     }, [minSelectableDate, maxSelectableDate]);
-
 
     const loadingMessage = loading && searchResults === null && error === null && (
         <div className="info-message">Searching flights...</div>
@@ -438,11 +378,9 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         <div className="info-message">No flights found for your selected criteria.</div>
     );
 
-
     return (
         <div className="flight-search-container">
             <h1>Welcome to Tunisia Flights Helper !</h1>
-
             <form onSubmit={handleSubmit} className="form-grid">
                 <fieldset className="email-section full-span">
                     <legend>0. Flight Price Alerts Subscription</legend>
@@ -468,11 +406,8 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                         We'll use this email to save your preferences and send price alerts.
                     </p>
                     {formErrors.userEmail && <p className="error-message-inline">{formErrors.userEmail}</p>}
-
-
                     {userCheckLoading && <p className="loading-spinner">Checking user status...</p>}
                     {userActionError && <p className={`feedback-message ${userActionError.includes('success') ? 'success-message-inline' : 'error-message-inline'}`}>{userActionError}</p>}
-
                     {!userCheckLoading && !userExists && userEmail && userEmail.includes('@') && userEmail.includes('.') && (
                         <div className="save-user-section">
                             <button type="button" className="save-user-button" onClick={handleSaveUser}>
@@ -481,8 +416,6 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                             <p className="save-user-info-text">Save your email to enable subscriptions and notifications.</p>
                         </div>
                     )}
-
-
                     {userExists && !userCheckLoading && (
                         <>
                             <div className="notification-checkbox-group">
@@ -494,10 +427,11 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                                     /> Enable Email Notifications
                                 </label>
                             </div>
-
+                            <p className="subscription-info-text">
+                                To add a new subscription, first search for flights, then click on a result to set a price alert.
+                            </p>
                             {displaySubsLoading && <p className="loading-spinner">Loading your subscriptions...</p>}
                             {subscriptionsError && !displaySubsLoading && <p className="error-text-small">{subscriptionsError}</p>}
-
                             <div className="user-subscriptions-list">
                                 <h3 className="subscriptions-header">
                                     Your Subscribed Flights:
@@ -540,65 +474,64 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                     )}
                     {formErrors.userExists && <p className="error-message-inline">{formErrors.userExists}</p>}
                 </fieldset>
-
-                <fieldset className="travel-direction-section full-span">
-                    <legend>1. Select Travel Direction</legend>
-                    <div className="radio-group">
-                        <label>
-                            <input
-                                type="radio"
-                                value="TN-DE"
-                                checked={direction === 'TN-DE'}
-                                onChange={handleDirectionChange}
-                            /> Tunisia to Germany
-                        </label>
-                        <label>
-                            <input
-                                type="radio"
-                                value="DE-TN"
-                                checked={direction === 'DE-TN'}
-                                onChange={handleDirectionChange}
-                            /> Germany to Tunisia
-                        </label>
-                    </div>
-                    {formErrors.direction && <p className="error-message-inline">{formErrors.direction}</p>}
-                </fieldset>
-
-                {direction && possibleRoutes.length > 0 && (
-                    <fieldset className="route-selection-section full-span">
-                        <legend>2. Select Routes (Multi-select)</legend>
-                        <div className="button-group">
-                            {possibleRoutes.map(route => {
-                                const [depCode, arrCode] = route.split('-');
-                                const depName = getAirportDisplayName(depCode);
-                                const arrName = getAirportDisplayName(arrCode);
-                                return (
+                <fieldset className="airport-selection-section full-span">
+                    <legend>1. Select Departure & Arrival Airports</legend>
+                    <div className="airport-selection-grid">
+                        <div className="departure-airports-column">
+                            <h3>Departure: {isTunisiaDeparture ? 'Tunisia' : 'Germany'}</h3>
+                            <div className="button-group-vertical">
+                                {(isTunisiaDeparture ? tunisianAirports : germanAirports).map(airport => (
                                     <button
-                                        key={route}
+                                        key={airport.code}
                                         type="button"
-                                        onClick={() => handleRouteToggle(route)}
-                                        className={`route-button ${selectedRoutes.includes(route) ? 'selected' : ''}`}
+                                        onClick={() => handleDepartureAirportToggle(airport.code)}
+                                        className={`airport-button ${selectedDepartureAirportCodes.includes(airport.code) ? 'selected' : ''}`}
                                     >
-                                        {depName} → {arrName}
+                                        {getAirportDisplayName(airport.code)}
                                     </button>
-                                );
-                            })}
+                                ))}
+                            </div>
+                            {formErrors.selectedDepartureAirportCodes && <p className="error-message-inline">{formErrors.selectedDepartureAirportCodes}</p>}
                         </div>
-                        {formErrors.selectedRoutes && <p className="error-message-inline">{formErrors.selectedRoutes}</p>}
-                    </fieldset>
-                )}
-
+                        <div className="direction-switch-column">
+                            <button
+                                type="button"
+                                className="direction-switch-button"
+                                onClick={handleDirectionSwitch}
+                                title="Switch Direction"
+                            >
+                                ⇄
+                            </button>
+                        </div>
+                        <div className="arrival-airports-column">
+                            <h3>Arrival: {isTunisiaDeparture ? 'Germany' : 'Tunisia'}</h3>
+                            <div className="button-group-vertical">
+                                {(isTunisiaDeparture ? germanAirports : tunisianAirports).map(airport => (
+                                    <button
+                                        key={airport.code}
+                                        type="button"
+                                        onClick={() => handleArrivalAirportToggle(airport.code)}
+                                        className={`airport-button ${selectedArrivalAirportCodes.includes(airport.code) ? 'selected' : ''}`}
+                                    >
+                                        {getAirportDisplayName(airport.code)}
+                                    </button>
+                                ))}
+                            </div>
+                            {formErrors.selectedArrivalAirportCodes && <p className="error-message-inline">{formErrors.selectedArrivalAirportCodes}</p>}
+                        </div>
+                    </div>
+                </fieldset>
                 <fieldset className="date-range-section full-span">
                     <legend>3. Select Date Range</legend>
                     <div className="date-range-slider-container">
                         <div className="selected-date-display">
-                            <span>Start: {format(startDate, 'dd MMM yyyy')}</span> {/* CHANGED: Date format */}
-                            <span>End: {format(endDate, 'dd MMM yyyy')}</span> {/* CHANGED: Date format */}
+                            <span>Start: {format(startDate, 'dd MMM yyyy')}</span>
+                            <span>End: {format(endDate, 'dd MMM yyyy')}</span>
                         </div>
                         <Slider
                             range
                             min={0}
-                            max={differenceInDays(maxSelectableDate, minSelectableDate)} // Max range is now 3 months
+                            max={differenceInDays(maxSelectableDate, minSelectableDate)}
                             value={dateRangeSliderValues}
                             onChange={onSliderChange}
                             marks={generateMarks()}
@@ -614,7 +547,6 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                     </div>
                     {formErrors.dateRange && <p className="error-message-inline">{formErrors.dateRange}</p>}
                 </fieldset>
-
                 <fieldset className="airline-selection-section full-span">
                     <legend>4. Select Preferred Airlines (Multi-select)</legend>
                     <div className="button-group">
@@ -631,15 +563,12 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                     </div>
                 </fieldset>
             </form>
-
             <button type="submit" className="submit-button" onClick={handleSubmit} disabled={!userExists}>
                 Show Flights
             </button>
-
             {loadingMessage}
             {errorMessage}
             {noFlightsMessage}
-
             {searchResults && Object.keys(searchResults).length > 0 ? (
                 <FlightResultsDisplay
                     groupedFlights={searchResults}
@@ -650,7 +579,6 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                     enableEmailNotifications={enableEmailNotifications}
                 />
             ) : null}
-
             {isModalOpen && selectedFlightFromSubscription && (
                 <FlightDetailModal
                     flight={selectedFlightFromSubscription}

@@ -1,6 +1,3 @@
-/* src/App.css */
-
-/* Define CSS variables for colors */
 :root {
   --background-color: #f4f7f6;
   --text-color: #333;
@@ -20,29 +17,24 @@
   --chart-title-color: #333333;
   --chart-axis-title-color: #555555;
   --chart-axis-tick-color: #777777;
-
   --delete-button-bg: #dc3545;
   --delete-button-hover: #c82333;
-
   --activate-button-bg: #28a745;
   --deactivate-button-bg: #ffc107;
   --deactivate-button-text: #343a40;
   --activate-button-hover: #218838;
   --deactivate-button-hover: #e0a800;
-
   --book-now-bg: #6f42c1;
   --book-now-hover: #5a359e;
-
   --info-background: #e9ecef;
   --info-text: #495057;
-
   --inline-error-color: #dc3545;
   --inline-success-color: #28a745;
   --inline-info-color: #007bff;
-
   --inline-error-color-rgb: 220, 53, 69;
   --inline-success-color-rgb: 40, 167, 69;
   --inline-info-color-rgb: 0, 123, 255;
+  --primary-button-bg-rgb: 0, 123, 255;
 }
 
 .dark-theme {
@@ -64,25 +56,24 @@
   --chart-title-color: #ffffff;
   --chart-axis-title-color: #b0b0b0;
   --chart-axis-tick-color: #909090;
-
   --delete-button-bg: #a83244;
   --delete-button-hover: #c63d50;
-
   --activate-button-bg: #4caf50;
   --deactivate-button-bg: #ffeb3b;
   --deactivate-button-text: #1a1a1a;
   --activate-button-hover: #3e8e41;
   --deactivate-button-hover: #fbc02d;
-
   --book-now-bg: #9c27b0;
   --book-now-hover: #7b1fa2;
-
   --info-background: #3a3a3a;
   --info-text: #c0c0c0;
-
   --inline-error-color: #ff8888;
   --inline-success-color: #4caf50;
   --inline-info-color: #5a8eec;
+  --inline-error-color-rgb: 255, 136, 136;
+  --inline-success-color-rgb: 76, 175, 80;
+  --inline-info-color-rgb: 90, 142, 236;
+  --primary-button-bg-rgb: 90, 142, 236;
 }
 
 * {
@@ -230,6 +221,22 @@ legend {
   margin-right: auto;
 }
 
+.subscription-info-text {
+  text-align: center;
+  font-size: 0.9em;
+  color: var(--info-text);
+  background-color: var(--info-background);
+  border: 1px solid var(--border-color);
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.4;
+}
+
 .feedback-message,
 .error-message-inline,
 .success-message-inline {
@@ -256,19 +263,6 @@ legend {
   border: 1px solid var(--inline-success-color);
 }
 
-:root {
-  --inline-error-color-rgb: 220, 53, 69;
-  --inline-success-color-rgb: 40, 167, 69;
-  --inline-info-color-rgb: 0, 123, 255;
-}
-
-.dark-theme {
-  --inline-error-color-rgb: 255, 136, 136;
-  --inline-success-color-rgb: 76, 175, 80;
-  --inline-info-color-rgb: 90, 142, 236;
-}
-
-
 button {
   border: none;
   cursor: pointer;
@@ -292,15 +286,21 @@ button:hover {
   border: 1px solid var(--border-color);
 }
 
+.airport-button {
+  background-color: var(--input-background);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.airport-button.selected {
+  background-color: var(--primary-button-bg) !important;
+  color: var(--primary-button-text) !important;
+  border-color: var(--primary-button-bg) !important;
+}
+
 .route-button.selected,
 .airline-button.selected {
   filter: brightness(1.2);
-}
-
-.route-button.selected {
-  background-color: var(--primary-button-bg);
-  color: var(--primary-button-text);
-  border-color: var(--primary-button-bg);
 }
 
 .airline-button.selected {
@@ -358,37 +358,33 @@ textarea,
   min-width: 120px;
   font-size: 1em !important;
   line-height: 1.2;
-
-  &:focus {
-    outline: none;
-    border-color: var(--primary-button-bg) !important;
-    box-shadow: 0 0 0 3px rgba(90, 142, 236, 0.4);
-  }
 }
 
-/* Removed specific date-picker-group>div style as DatePicker is now single */
+input[type="text"]:focus,
+input[type="date"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+select:focus,
+textarea:focus,
+.text-input:focus {
+  outline: none;
+  border-color: var(--primary-button-bg) !important;
+  box-shadow: 0 0 0 3px rgba(90, 142, 236, 0.4);
+}
+
 .date-picker-group {
-  /* Keep this for general padding/alignment if needed */
   display: flex;
   justify-content: center;
-  /* Center the single date picker */
   margin-top: 1rem;
   padding: 0 1rem;
-  /* Add some padding if content too wide */
 }
 
-/* NEW: Date range slider container styles */
 .date-range-slider-container {
   width: 90%;
-  /* Adjust width as needed */
   max-width: 600px;
-  /* Max width for larger screens */
   margin: 1rem auto;
-  /* Center the container */
   padding: 1rem 0;
-  /* Vertical padding */
   position: relative;
-  /* For custom labels if any */
 }
 
 .selected-date-display {
@@ -399,77 +395,46 @@ textarea,
   color: var(--text-color);
 }
 
-
-/* RC-Slider Custom Theming for Dark Mode */
 .rc-slider {
   height: 40px;
-  /* More vertical space for the slider */
   padding: 10px 0;
-  /* Padding for tracks and handles */
   margin-top: 20px;
-  /* Space between date display and slider */
   box-sizing: border-box;
-  /* Include padding in element's total width and height */
 }
 
 .rc-slider-track {
   background-color: var(--primary-button-bg) !important;
-  /* Blue track */
   height: 8px !important;
-  /* Thicker track */
   border-radius: 4px !important;
 }
 
 .rc-slider-rail {
   background-color: var(--border-color) !important;
-  /* Grey rail */
   height: 8px !important;
-  /* Thicker rail */
   border-radius: 4px !important;
 }
 
 .rc-slider-handle {
   background-color: var(--primary-button-bg) !important;
-  /* Blue handle */
   border-color: var(--primary-button-bg) !important;
-  /* Blue handle border */
   width: 24px !important;
-  /* Larger handle */
   height: 24px !important;
-  /* Larger handle */
   margin-top: -8px !important;
-  /* Center handle vertically on track */
   box-shadow: 0 0 0 4px rgba(var(--primary-button-bg-rgb), 0.3) !important;
-  /* Glow on handle */
   transition: all 0.2s ease-in-out;
 }
 
 .rc-slider-handle:hover {
   transform: translateY(-2px);
-  /* Slight lift on hover */
   box-shadow: 0 0 0 6px rgba(var(--primary-button-bg-rgb), 0.5) !important;
-  /* More pronounced glow */
 }
 
 .rc-slider-mark-text {
   color: var(--legend-color) !important;
-  /* Mark text color */
   font-size: 0.85em !important;
   margin-top: 8px;
-  /* Space between mark and slider */
 }
 
-/* Optional: Define RGB for primary button for rgba() use */
-:root {
-  --primary-button-bg-rgb: 0, 123, 255;
-}
-
-.dark-theme {
-  --primary-button-bg-rgb: 90, 142, 236;
-}
-
-
-/* --- MESSAGES (Loading, Error, etc.) --- */
 .info-message,
 .error-message {
   text-align: center;
@@ -497,7 +462,6 @@ textarea,
   margin-left: 10px;
 }
 
-/* --- NEW STYLES FOR SUBSCRIPTION LIST AND NOTIFICATION CHECKBOX --- */
 .notification-checkbox-group {
   display: flex;
   justify-content: center;
@@ -518,7 +482,6 @@ textarea,
   border-top: 1px dashed var(--border-color);
 }
 
-/* Header with refresh button */
 .subscriptions-header {
   display: flex;
   justify-content: center;
@@ -547,7 +510,6 @@ textarea,
   transform: rotate(15deg) scale(1.05);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
-
 
 .user-subscriptions-list ul {
   list-style: none;
@@ -596,7 +558,6 @@ textarea,
   color: var(--legend-color);
   margin-left: 0.5rem;
 }
-
 
 .sub-price {
   font-weight: bold;
@@ -709,4 +670,84 @@ textarea,
 
 .chart-card .chartjs-render-monitor {
   margin-bottom: 2rem;
+}
+
+.airport-selection-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1.5rem;
+  width: 100%;
+  margin-top: 1rem;
+  align-items: flex-start;
+}
+
+.departure-airports-column,
+.arrival-airports-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  min-width: 150px;
+}
+
+.departure-airports-column h3,
+.arrival-airports-column h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1em;
+  text-align: center;
+}
+
+.button-group-vertical {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.button-group-vertical .airport-button {
+  width: auto;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+}
+
+.direction-switch-column {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+.direction-switch-button {
+  background-color: var(--secondary-button-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  font-size: 2rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.direction-switch-button:hover {
+  background-color: var(--primary-button-bg);
+  color: var(--primary-button-text);
+  border-color: var(--primary-button-bg);
+  transform: rotate(30deg) scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 768px) {
+  .airport-selection-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .direction-switch-column {
+    padding: 1rem 0;
+    order: -1;
+  }
 }
