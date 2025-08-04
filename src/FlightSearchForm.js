@@ -53,7 +53,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
     const [displaySubscriptions, setDisplaySubscriptions] = useState([]);
     const [displaySubsLoading, setDisplaySubsLoading] = useState(false);
     const [userExists, setUserExists] = useState(false);
-    const [userCheckLoading, setUserCheckLoading] = useState(true);
+    const [userCheckLoading, setUserCheckLoading] = useState(false);
     const [userActionError, setUserActionError] = useState(null);
     const [formErrors, setFormErrors] = useState({});
 
@@ -71,36 +71,32 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         return airport ? `${capitalizeWords(airport.name)} (${code})` : code;
     }, [allAirports, capitalizeWords]);
 
-    useEffect(() => {
-        const checkUser = async () => {
-            setUserCheckLoading(true);
-            setUserActionError(null);
-            if (!userEmail) {
+    const handleEmailBlur = async () => {
+        if (!userEmail || !userEmail.includes('@') || !userEmail.includes('.')) {
+            setUserExists(false);
+            return;
+        }
+
+        setUserCheckLoading(true);
+        setUserActionError(null);
+        try {
+            const user = await fetchUserByEmail(userEmail);
+            if (user) {
+                setUserExists(true);
+                setEnableEmailNotifications(user.enableNotificationsSetting);
+            } else {
                 setUserExists(false);
                 setEnableEmailNotifications(true);
-                setUserCheckLoading(false);
-                return;
             }
-            try {
-                const user = await fetchUserByEmail(userEmail);
-                if (user) {
-                    setUserExists(true);
-                    setEnableEmailNotifications(user.enableNotificationsSetting);
-                } else {
-                    setUserExists(false);
-                    setEnableEmailNotifications(true);
-                }
-            }
-            catch (err) {
-                console.error("Failed to check user existence:", err);
-                setUserActionError("Could not verify user status. " + err.message);
-                setUserExists(false);
-            } finally {
-                setUserCheckLoading(false);
-            }
-        };
-        checkUser();
-    }, [userEmail]);
+        } catch (err) {
+            console.error("Failed to check user existence:", err);
+            setUserActionError("Could not verify user status. " + err.message);
+            setUserExists(false);
+        } finally {
+            setUserCheckLoading(false);
+        }
+    };
+
 
     useEffect(() => {
         if (userEmail && userExists && !userCheckLoading) {
@@ -173,8 +169,10 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
     }, [userEmail, userExists, setUserSubscriptions]);
 
     useEffect(() => {
-        loadAndEnrichSubscriptions();
-    }, [userEmail, userExists, loadAndEnrichSubscriptions]);
+        if (userExists) {
+            loadAndEnrichSubscriptions();
+        }
+    }, [userExists, loadAndEnrichSubscriptions]);
 
     useEffect(() => {
         setUserSubscriptions(displaySubscriptions);
@@ -394,12 +392,12 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                                 setUserEmail(e.target.value);
                                 setUserExists(false);
                                 setUserActionError(null);
-                                setFormErrors(prev => ({ ...prev, userEmail: null }));
+                                setFormErrors(prev => ({ ...prev, userEmail: null, userExists: null }));
                             }}
+                            onBlur={handleEmailBlur}
                             placeholder="Enter your email"
                             className="text-input"
                             required
-                            disabled={userCheckLoading}
                         />
                     </div>
                     <p className="email-clarification-text">
