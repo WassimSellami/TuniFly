@@ -112,7 +112,6 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
             payload.isActive = existingSubscription.isActive;
         }
 
-
         try {
             let result;
             if (actionType === 'create') {
@@ -138,7 +137,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                         flightArrivalAirportCode: flight.arrivalAirportCode,
                         flightDepartureDate: flight.departureDate,
                         flightAirlineCode: flight.airlineCode,
-                        flightPrice: flight.price
+                        flightPrice: flight.priceEur
                     }];
                 } else if (actionType === 'update') {
                     return prevSubs.map(sub => sub.id === result.id ? {
@@ -177,7 +176,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
             return acc;
         }
         const lastAddedItem = acc[acc.length - 1];
-        if (currentItem.price !== lastAddedItem.price || index === sortedHistory.length - 1) {
+        if (currentItem.priceEur !== lastAddedItem.priceEur || index === sortedHistory.length - 1) {
             acc.push(currentItem);
         }
         return acc;
@@ -185,7 +184,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
 
     const chartData = filteredHistory.map(h => ({
         x: parseISO(h.timestamp),
-        y: h.price
+        y: h.priceEur
     }));
 
     const airline = airlines.find(a => a.code === flight.airlineCode);
@@ -194,7 +193,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
 
     const data = {
         datasets: [{
-            label: 'Price History',
+            label: 'Price History (EUR)',
             data: chartData,
             fill: true,
             backgroundColor: 'rgba(75, 192, 192, 0.2)',
@@ -227,7 +226,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                     top: 4, bottom: 4, left: 6, right: 6
                 },
                 formatter: function (value, context) {
-                    return value.y;
+                    return value.y.toFixed(2); // Format to 2 decimal places
                 }
             },
             tooltip: {
@@ -236,7 +235,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                         return format(context[0].parsed.x, 'MMM d, yyyy, h:mm a');
                     },
                     label: function (context) {
-                        return `Price: ${context.parsed.y} EUR`;
+                        return `Price: ${context.parsed.y.toFixed(2)} EUR`;
                     }
                 }
             }
@@ -246,22 +245,20 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                 type: 'time',
                 time: {
                     tooltipFormat: 'MMM d, yyyy, h:mm a',
-                    unit: 'day', // Base unit for axis, can be refined by tick settings
+                    unit: 'day',
                     displayFormats: {
-                        day: 'dd MMM', // Default format for 'day' unit
-                        hour: 'hh:mm a' // Include hour format for tooltip if detail is needed
+                        day: 'dd MMM',
+                        hour: 'hh:mm a'
                     }
                 },
                 ticks: {
-                    source: 'data', // <--- IMPORTANT: Generate ticks only for actual data points
-                    autoSkip: false, // <--- IMPORTANT: Prevent auto-skipping labels
+                    source: 'data',
+                    autoSkip: false,
                     maxRotation: 45,
                     minRotation: 45,
                     color: '#e0e0e0',
                     callback: function (value, index, ticks) {
                         const date = new Date(value);
-                        // Format to show Day and Month for clarity on sparse ticks
-                        // If multiple points per day, consider also showing time if needed.
                         return dateFormatFns(date, 'dd MMM');
                     }
                 },
@@ -293,7 +290,8 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                 <div className="flight-info">
                     <span><strong>Airline:</strong> {airlineName}</span>
                     <span><strong>Departure:</strong> {departureDateFormatted}</span>
-                    <span><strong>Current Price:</strong> <span className="current-price">{flight.price}€</span></span>
+                    {/* --- MODIFIED: Display priceEur --- */}
+                    <span><strong>Current Price:</strong> <span className="current-price">{flight.priceEur.toFixed(2)}€</span></span>
                 </div>
 
                 <div className="modal-chart-container">
@@ -305,7 +303,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                         ) : (
                             <div className="single-point-message" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
                                 <p style={{ fontSize: '1.2em', marginBottom: '10px' }}>Only one price point recorded:</p>
-                                <p style={{ fontSize: '1.8em', fontWeight: 'bold', color: 'var(--primary-button-bg)' }}>{chartData[0]?.y}€</p>
+                                <p style={{ fontSize: '1.8em', fontWeight: 'bold', color: 'var(--primary-button-bg)' }}>{chartData[0]?.y.toFixed(2)}€</p>
                                 <p style={{ marginTop: '10px' }}>Check back later for a price history graph.</p>
                             </div>
                         )
@@ -321,7 +319,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                         <>
                             {existingSubscription ? (
                                 <p className="submit-message">
-                                    You are currently tracking this flight at <strong>{existingSubscription.targetPrice}€</strong>.<br />
+                                    You are currently tracking this flight at <strong>{existingSubscription.targetPrice.toFixed(2)}€</strong>.<br />
                                     Status: <span className={isSubscriptionActive ? 'active-status' : 'inactive-status'}>
                                         {isSubscriptionActive ? 'Active' : 'Inactive'}
                                     </span>
@@ -339,6 +337,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                                     className="target-price-input"
                                     required
                                     disabled={submitting}
+                                    step="0.01"
                                 />
                                 {existingSubscription ? (
                                     <>

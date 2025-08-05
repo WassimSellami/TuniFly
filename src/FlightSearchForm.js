@@ -97,7 +97,6 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         }
     };
 
-
     useEffect(() => {
         if (userEmail && userExists && !userCheckLoading) {
             updateUserEmailNotificationSetting(userEmail, enableEmailNotifications)
@@ -145,7 +144,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                         flightArrivalAirportCode: flightDetails.arrivalAirportCode,
                         flightDepartureDate: flightDetails.departureDate,
                         flightAirlineCode: flightDetails.airlineCode,
-                        flightPrice: flightDetails.price
+                        flightPrice: flightDetails.priceEur
                     };
                 } catch (flightErr) {
                     console.warn(`Could not fetch details for flight ${sub.flightId}:`, flightErr);
@@ -297,7 +296,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         setError(null);
         try {
             let flightDetails = subscription;
-            if (!flightDetails.price || !flightDetails.airlineCode || !flightDetails.departureAirportCode) {
+            if (!flightDetails.priceEur || !flightDetails.airlineCode || !flightDetails.departureAirportCode) {
                 const fetchedDetails = await fetchFlightById(subscription.flightId);
                 flightDetails = { ...subscription, ...fetchedDetails };
             }
@@ -452,7 +451,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                                                         </span>
                                                     )}
                                                 </span>
-                                                <span className="sub-price">Target: {sub.targetPrice}€</span>
+                                                <span className="sub-price">Target: {sub.targetPrice.toFixed(2)}€</span>
                                                 <button
                                                     type="button"
                                                     className="delete-sub-button"
