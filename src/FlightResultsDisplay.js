@@ -294,7 +294,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                                     grid: {
                                         color: gridLineColor,
                                     },
-                                    beginAtZero: false,
+                                    beginAtZero: true,
                                 },
                             },
                         };
