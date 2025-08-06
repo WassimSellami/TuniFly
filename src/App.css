@@ -751,3 +751,45 @@ textarea:focus,
     order: -1;
   }
 }
+
+.chart-navigation {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+.chart-navigation button {
+  background-color: var(--secondary-button-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  font-size: 1.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 8px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.chart-navigation button:hover:not(:disabled) {
+  background-color: var(--primary-button-bg);
+  color: var(--primary-button-text);
+  border-color: var(--primary-button-bg);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.chart-navigation button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.chart-navigation span {
+  font-size: 1em;
+  color: var(--legend-color);
+  font-weight: 500;
+}

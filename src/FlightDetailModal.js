@@ -290,8 +290,7 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                 <div className="flight-info">
                     <span><strong>Airline:</strong> {airlineName}</span>
                     <span><strong>Departure:</strong> {departureDateFormatted}</span>
-                    {/* --- MODIFIED: Display priceEur --- */}
-                    <span><strong>Current Price:</strong> <span className="current-price">{flight.priceEur.toFixed(2)}€</span></span>
+                    <span><strong>Current Price:</strong> <span className="current-price">€{flight.priceEur.toFixed(2)}</span></span>
                 </div>
 
                 <div className="modal-chart-container">
@@ -311,97 +310,77 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscript
                     {!loading && !error && history.length === 0 && <p>No price history available for this flight.</p>}
                 </div>
 
-                <form className="subscription-form" onSubmit={(e) => { e.preventDefault(); }}>
-                    <h3>Track this Flight</h3>
-                    {!userEmail ? (
-                        <p className="submit-message error-message">Please enter your email in the search form to subscribe.</p>
-                    ) : (
-                        <>
-                            {existingSubscription ? (
-                                <p className="submit-message">
-                                    You are currently tracking this flight at <strong>{existingSubscription.targetPrice.toFixed(2)}€</strong>.<br />
-                                    Status: <span className={isSubscriptionActive ? 'active-status' : 'inactive-status'}>
-                                        {isSubscriptionActive ? 'Active' : 'Inactive'}
-                                    </span>
-                                </p>
+                <div className="modal-actions-container">
+                    <div className="subscription-form-container">
+                        <form className="subscription-form" onSubmit={(e) => { e.preventDefault(); }}>
+                            <h3>Track this Flight</h3>
+                            {!userEmail ? (
+                                <p className="submit-message error-message">Please enter your email in the search form to subscribe.</p>
                             ) : (
-                                <p>Get notified when the price drops below your target.</p>
+                                <>
+                                    {existingSubscription ? (
+                                        <p className="submit-message">
+                                            Currently tracking at <strong>{existingSubscription.targetPrice.toFixed(2)}€</strong>. Status: <span className={isSubscriptionActive ? 'active-status' : 'inactive-status'}>
+                                                {isSubscriptionActive ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </p>
+                                    ) : (
+                                        <p>Get notified when the price drops.</p>
+                                    )}
+
+                                    <div className="form-group">
+                                        <input
+                                            type="number"
+                                            placeholder="Enter Target Price (EUR)"
+                                            value={targetPrice}
+                                            onChange={e => setTargetPrice(e.target.value)}
+                                            className="target-price-input"
+                                            required
+                                            disabled={submitting}
+                                            step="0.01"
+                                        />
+                                        {existingSubscription ? (
+                                            <>
+                                                <button type="button" className="subscribe-button update-button" onClick={() => handleSubscriptionAction('update')} disabled={submitting}>
+                                                    {submitting ? 'Updating...' : 'Update'}
+                                                </button>
+                                                <button type="button" className={`subscribe-button ${isSubscriptionActive ? 'deactivate-button' : 'activate-button'}`} onClick={() => handleSubscriptionAction('update', !isSubscriptionActive)} disabled={submitting}>
+                                                    {submitting ? '...' : (isSubscriptionActive ? 'Deactivate' : 'Activate')}
+                                                </button>
+                                                <button type="button" className="subscribe-button delete-button" onClick={() => handleSubscriptionAction('delete')} disabled={submitting}>
+                                                    {submitting ? 'Deleting...' : 'Delete'}
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button type="button" className="subscribe-button" onClick={() => handleSubscriptionAction('create')} disabled={submitting}>
+                                                {submitting ? 'Subscribing...' : 'Subscribe'}
+                                            </button>
+                                        )}
+                                    </div>
+                                    {submitMessage && <p className="submit-message feedback">{submitMessage}</p>}
+                                </>
                             )}
-
-                            <div className="form-group">
-                                <input
-                                    type="number"
-                                    placeholder="Enter Target Price (EUR)"
-                                    value={targetPrice}
-                                    onChange={e => setTargetPrice(e.target.value)}
-                                    className="target-price-input"
-                                    required
-                                    disabled={submitting}
-                                    step="0.01"
-                                />
-                                {existingSubscription ? (
-                                    <>
-                                        <button
-                                            type="button"
-                                            className="subscribe-button update-button"
-                                            onClick={() => handleSubscriptionAction('update')}
-                                            disabled={submitting}
-                                        >
-                                            {submitting ? 'Updating...' : 'Update'}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`subscribe-button ${isSubscriptionActive ? 'deactivate-button' : 'activate-button'}`}
-                                            onClick={() => handleSubscriptionAction('update', !isSubscriptionActive)}
-                                            disabled={submitting}
-                                        >
-                                            {submitting ? 'Updating...' : (isSubscriptionActive ? 'Deactivate' : 'Activate')}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="subscribe-button delete-button"
-                                            onClick={() => handleSubscriptionAction('delete')}
-                                            disabled={submitting}
-                                        >
-                                            {submitting ? 'Deleting...' : 'Delete'}
-                                        </button>
-                                    </>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        className="subscribe-button"
-                                        onClick={() => handleSubscriptionAction('create')}
-                                        disabled={submitting}
-                                    >
-                                        {submitting ? 'Subscribing...' : 'Subscribe'}
-                                    </button>
-                                )}
-                            </div>
-                            {submitMessage && <p className="submit-message">{submitMessage}</p>}
-                        </>
-                    )}
-                </form>
-
-                {flight.bookingUrl ? (
-                    <div className="book-now-section">
-                        <h3>Ready to Book?</h3>
-                        <a
-                            href={flight.bookingUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="book-now-button"
-                        >
-                            Book Now ✈️
-                        </a>
-                        <p className="book-now-info-text">
-                            (This link leads to the airline's booking page. Prices may vary.)
-                        </p>
+                        </form>
                     </div>
-                ) : (
-                    <div className="book-now-section">
-                        <p className="book-now-info-text">Booking links currently not available for this flight's airline or specific route. Please search for this flight on your preferred airline's website.</p>
+
+                    <div className="book-now-container">
+                        <div className="book-now-section">
+                            <h3>Ready to Book?</h3>
+                            {flight.bookingUrl ? (
+                                <>
+                                    <a href={flight.bookingUrl} target="_blank" rel="noopener noreferrer" className="book-now-button">
+                                        Book Now ✈️
+                                    </a>
+                                    <p className="book-now-info-text">
+                                        (This link leads to the airline's page. Prices may vary.)
+                                    </p>
+                                </>
+                            ) : (
+                                <p className="book-now-info-text">Booking links are not available for this airline. Please check the airline's website directly.</p>
+                            )}
+                        </div>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

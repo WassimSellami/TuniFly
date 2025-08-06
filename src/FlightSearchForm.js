@@ -71,7 +71,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         return airport ? `${capitalizeWords(airport.name)} (${code})` : code;
     }, [allAirports, capitalizeWords]);
 
-    const handleEmailBlur = async () => {
+    const handleEmailBlur = useCallback(async () => {
         if (!userEmail || !userEmail.includes('@') || !userEmail.includes('.')) {
             setUserExists(false);
             return;
@@ -95,8 +95,14 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         } finally {
             setUserCheckLoading(false);
         }
-    };
+    }, [userEmail]);
 
+    useEffect(() => {
+        if (userEmail) {
+            handleEmailBlur();
+        }
+    }, [userEmail, handleEmailBlur]);
+    
     useEffect(() => {
         if (userEmail && userExists && !userCheckLoading) {
             updateUserEmailNotificationSetting(userEmail, enableEmailNotifications)
@@ -218,12 +224,6 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
 
     const validateForm = useCallback(() => {
         const errors = {};
-        if (!userEmail || !userEmail.includes('@') || !userEmail.includes('.')) {
-            errors.userEmail = "Please enter a valid email address.";
-        }
-        if (!userExists) {
-            errors.userExists = "Please save your email address first to proceed with search.";
-        }
         if (selectedDepartureAirportCodes.length === 0) {
             errors.selectedDepartureAirportCodes = "Please select at least one departure airport.";
         }
@@ -243,7 +243,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
         }
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
-    }, [userEmail, userExists, selectedDepartureAirportCodes, selectedArrivalAirportCodes, startDate, endDate]);
+    }, [selectedDepartureAirportCodes, selectedArrivalAirportCodes, startDate, endDate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -396,7 +396,6 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                             onBlur={handleEmailBlur}
                             placeholder="Enter your email"
                             className="text-input"
-                            required
                         />
                     </div>
                     <p className="email-clarification-text">
@@ -560,7 +559,7 @@ const FlightSearchForm = ({ userEmail, setUserEmail, userSubscriptions, subscrip
                     </div>
                 </fieldset>
             </form>
-            <button type="submit" className="submit-button" onClick={handleSubmit} disabled={!userExists}>
+            <button type="submit" className="submit-button" onClick={handleSubmit}>
                 Show Flights
             </button>
             {loadingMessage}

@@ -22,9 +22,7 @@
     overflow-y: auto;
     position: relative;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    /* Ensure content inside modal is generally centered */
     text-align: center;
-    /* This is a general fallback for block-level text */
 }
 
 .modal-close-button {
@@ -44,106 +42,108 @@
     margin-bottom: 1rem;
     font-size: 1.8rem;
     text-align: center;
-    /* Ensure title is centered */
 }
 
 .flight-info {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem 2rem;
-    margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border-color, #383838);
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     justify-content: center;
-    /* Center flex items horizontally */
-    text-align: initial;
-    /* Reset text-align for span elements if needed */
 }
 
 .flight-info .current-price {
     font-weight: bold;
-    color: var(--success-accent, #28a745);
+    color: var(--success-button-bg, #28a745);
     font-size: 1.2rem;
 }
 
 .modal-chart-container {
     height: 300px;
     margin-bottom: 2rem;
-    margin-top: 1.5rem;
 }
 
-.subscription-form {
+.modal-actions-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: stretch;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color, #383838);
+}
+
+.subscription-form-container,
+.book-now-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.subscription-form,
+.book-now-section {
     text-align: center;
-    /* Center the form content */
+    width: 100%;
 }
 
-.subscription-form h3 {
-    margin-bottom: 0.5rem;
-    text-align: center;
-    /* Ensure h3 is centered */
+.subscription-form h3,
+.book-now-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
 }
 
-.subscription-form p {
+.subscription-form p,
+.book-now-section p {
     margin-bottom: 1rem;
     color: var(--legend-color, #c0c0c0);
-    text-align: center;
-    /* Ensure paragraphs are centered */
 }
 
 .subscription-form .form-group {
     display: flex;
     flex-wrap: wrap;
-    /* Allow wrapping on smaller screens */
-    gap: 1rem;
+    gap: 0.75rem;
     justify-content: center;
-    /* Center buttons and input */
-    margin-bottom: 1rem;
-    /* Space below the form group */
+    align-items: center;
+    margin-bottom: 0.5rem;
 }
 
 .target-price-input {
-    /* flex-grow: 1; - removed this, as it can make it too wide if there's space */
-    max-width: 200px;
-    /* Constrain width for better centering */
-    background-color: var(--input-background) !important;
-    color: var(--input-text) !important;
-    border: 1px solid var(--input-border) !important;
-    padding: 0.75rem !important;
-    border-radius: 8px !important;
-    font-size: 1rem !important;
-    text-align: center;
-    /* Ensure text inside input is centered */
+    width: 100%;
+    max-width: 220px;
+    margin-bottom: 0.5rem;
 }
 
-/* Ensure buttons are properly styled from App.css */
 .subscribe-button {
-    background-color: var(--primary-accent, #007BFF) !important;
-    color: white;
-    font-weight: 500;
+    flex-grow: 1;
+    min-width: 100px;
 }
 
-.subscribe-button:disabled {
-    background-color: #555 !important;
-    cursor: not-allowed;
-}
-
-.submit-message {
+.submit-message.feedback {
     margin-top: 1rem;
-    text-align: center;
     font-weight: 500;
 }
 
-/* Single point message for the chart (already has centering styles) */
-.single-point-message {
+.book-now-button {
+    width: 100%;
+    max-width: 250px;
+    margin: 0 auto;
+}
+
+.single-point-message,
+.no-history-message {
+    height: 300px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
 }
 
-/* Book now section (already has centering styles from App.css, but ensure no conflict) */
-.book-now-section {
-    text-align: center;
-    /* Ensure section content is centered */
+@media (max-width: 768px) {
+    .modal-actions-container {
+        grid-template-columns: 1fr;
+    }
 }

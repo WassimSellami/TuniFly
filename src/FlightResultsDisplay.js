@@ -30,6 +30,9 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
     const [flightMinMaxHistory, setFlightMinMaxHistory] = useState({});
     const [minMaxLoading, setMinMaxLoading] = useState(true);
     const [allAirports, setAllAirports] = useState([]);
+    const [chartPages, setChartPages] = useState({});
+
+    const FLIGHTS_PER_PAGE = 9;
 
     const chartTitleColor = '#FFFFFF';
     const axisTitleColor = '#CCCCCC';
@@ -69,6 +72,14 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
     }, []);
 
     useEffect(() => {
+        const initialPages = {};
+        Object.keys(groupedFlights).forEach(route => {
+            initialPages[route] = 0;
+        });
+        setChartPages(initialPages);
+    }, [groupedFlights]);
+
+    useEffect(() => {
         const fetchAllFlightMinMaxHistory = async () => {
             setMinMaxLoading(true);
             const newFlightMinMaxHistory = {};
@@ -81,8 +92,13 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
             });
 
             const promises = Array.from(uniqueFlightIds).map(async (id) => {
-                const data = await fetchMinMaxPrice(id);
-                newFlightMinMaxHistory[id] = data;
+                try {
+                    const data = await fetchMinMaxPrice(id);
+                    newFlightMinMaxHistory[id] = data;
+                } catch (err) {
+                    console.error(`Failed to fetch min/max price for flight ${id}:`, err);
+                    newFlightMinMaxHistory[id] = { minPrice: null, maxPrice: null };
+                }
             });
 
             await Promise.all(promises);
@@ -103,6 +119,13 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
         setIsModalOpen(true);
     };
 
+    const handlePageChange = (route, newPage) => {
+        setChartPages(prevPages => ({
+            ...prevPages,
+            [route]: newPage,
+        }));
+    };
+
     return (
         <>
             <div className="flight-results-container">
@@ -114,13 +137,15 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                 <div className="results-grid">
                     {Object.keys(groupedFlights).sort().map(route => {
                         const flightsForRoute = groupedFlights[route];
+                        const sortedFlights = [...flightsForRoute].sort((a, b) => new Date(a.departureDate) - new Date(b.departureDate));
+                        
+                        const currentPage = chartPages[route] || 0;
+                        const totalPages = Math.ceil(sortedFlights.length / FLIGHTS_PER_PAGE);
+                        const startIndex = currentPage * FLIGHTS_PER_PAGE;
+                        const paginatedFlights = sortedFlights.slice(startIndex, startIndex + FLIGHTS_PER_PAGE);
 
-                        const sortedFlights = [...flightsForRoute].sort((a, b) =>
-                            new Date(a.departureDate) - new Date(b.departureDate)
-                        );
-
-                        const labels = sortedFlights.map(f => f.departureDate.split('T')[0]);
-                        const prices = sortedFlights.map(f => f.priceEur);
+                        const labels = paginatedFlights.map(f => f.departureDate.split('T')[0]);
+                        const prices = paginatedFlights.map(f => f.priceEur);
 
                         const [depCode, arrCode] = route.split('-');
                         const depName = getAirportDisplayName(depCode);
@@ -129,79 +154,64 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
 
                         const data = {
                             labels: labels,
-                            datasets: [
-                                {
-                                    type: 'bar',
-                                    label: 'Current Price (EUR)',
-                                    data: prices,
-                                    backgroundColor: barBackgroundColor,
-                                    borderColor: barBorderColor,
-                                    borderWidth: 1,
-                                    maxBarThickness: 100,
-                                    order: 1,
-                                    datalabels: {
-                                        display: true,
-                                        labels: {
-                                            currentPrice: {
-                                                align: 'center',
-                                                anchor: 'center',
-                                                color: 'white',
-                                                font: {
-                                                    weight: 'bold',
-                                                    size: 18
-                                                },
-                                                formatter: function (value, context) {
-                                                    const flight = sortedFlights[context.dataIndex];
-                                                    const isSubscribed = userSubscriptions.some(sub => sub.flightId === flight.id);
-                                                    return `${value.toFixed(2)} ${isSubscribed ? '★' : ''}`;
-                                                }
-                                            },
-                                            minPrice: {
-                                                align: 'center',
-                                                anchor: 'start',
-                                                offset: -4,
-                                                color: minLabelColor,
-                                                font: {
-                                                    weight: 'bold',
-                                                    size: 14
-                                                },
-                                                formatter: function (value, context) {
-                                                    const flight = sortedFlights[context.dataIndex];
-                                                    const flightHistory = flightMinMaxHistory[flight.id];
-                                                    return flightHistory && flightHistory.minPrice !== null
-                                                        ? `Min: ${flightHistory.minPrice.toFixed(2)}`
-                                                        : '';
-                                                },
-                                                padding: { top: 2, bottom: 2, left: 4, right: 4 },
-                                                backgroundColor: labelBackgroundColor,
-                                                borderRadius: 4,
-                                                clip: false,
-                                            },
-                                            maxPrice: {
-                                                align: 'center',
-                                                anchor: 'end',
-                                                offset: -4,
-                                                color: maxLabelColor,
-                                                font: {
-                                                    weight: 'bold',
-                                                    size: 14
-                                                },
-                                                formatter: function (value, context) {
-                                                    const flight = sortedFlights[context.dataIndex];
-                                                    const flightHistory = flightMinMaxHistory[flight.id];
-                                                    return flightHistory && flightHistory.maxPrice !== null
-                                                        ? `Max: ${flightHistory.maxPrice.toFixed(2)}`
-                                                        : '';
-                                                },
-                                                padding: { top: 2, bottom: 2, left: 4, right: 4 },
-                                                backgroundColor: labelBackgroundColor,
-                                                borderRadius: 4,
-                                                clip: false,
+                            datasets: [{
+                                type: 'bar',
+                                label: 'Current Price (EUR)',
+                                data: prices,
+                                backgroundColor: barBackgroundColor,
+                                borderColor: barBorderColor,
+                                borderWidth: 1,
+                                maxBarThickness: 100,
+                                order: 1,
+                                datalabels: {
+                                    display: true,
+                                    labels: {
+                                        currentPrice: {
+                                            align: 'center',
+                                            anchor: 'center',
+                                            color: 'white',
+                                            font: { weight: 'bold', size: 18 },
+                                            formatter: (value, context) => {
+                                                const flight = paginatedFlights[context.dataIndex];
+                                                const isSubscribed = userSubscriptions.some(sub => sub.flightId === flight.id);
+                                                return `€${value.toFixed(2)} ${isSubscribed ? '★' : ''}`;
                                             }
+                                        },
+                                        minPrice: {
+                                            align: 'center',
+                                            anchor: 'start',
+                                            offset: -4,
+                                            color: minLabelColor,
+                                            font: { weight: 'bold', size: 14 },
+                                            formatter: (value, context) => {
+                                                const flight = paginatedFlights[context.dataIndex];
+                                                const flightHistory = flightMinMaxHistory[flight.id];
+                                                return flightHistory && flightHistory.minPrice !== null ? `Min: ${flightHistory.minPrice.toFixed(2)}` : '';
+                                            },
+                                            padding: { top: 2, bottom: 2, left: 4, right: 4 },
+                                            backgroundColor: labelBackgroundColor,
+                                            borderRadius: 4,
+                                            clip: false,
+                                        },
+                                        maxPrice: {
+                                            align: 'center',
+                                            anchor: 'end',
+                                            offset: -4,
+                                            color: maxLabelColor,
+                                            font: { weight: 'bold', size: 14 },
+                                            formatter: (value, context) => {
+                                                const flight = paginatedFlights[context.dataIndex];
+                                                const flightHistory = flightMinMaxHistory[flight.id];
+                                                return flightHistory && flightHistory.maxPrice !== null ? `Max: ${flightHistory.maxPrice.toFixed(2)}` : '';
+                                            },
+                                            padding: { top: 2, bottom: 2, left: 4, right: 4 },
+                                            backgroundColor: labelBackgroundColor,
+                                            borderRadius: 4,
+                                            clip: false,
                                         }
                                     }
                                 }
-                            ],
+                            }],
                         };
 
                         const options = {
@@ -211,8 +221,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                                 if (elements.length > 0) {
                                     const clickedElement = elements[0];
                                     if (clickedElement.datasetIndex === 0) {
-                                        const dataIndex = clickedElement.index;
-                                        const clickedFlight = sortedFlights[dataIndex];
+                                        const clickedFlight = paginatedFlights[clickedElement.index];
                                         if (clickedFlight) {
                                             handleFlightClick(clickedFlight);
                                         }
@@ -224,32 +233,20 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                                     display: true,
                                     text: `Prices for Route: ${chartRouteTitle}`,
                                     color: chartTitleColor,
-                                    font: {
-                                        size: 20,
-                                        weight: 'bold'
-                                    },
-                                    padding: {
-                                        top: 0,
-                                        bottom: 50
-                                    }
+                                    font: { size: 20, weight: 'bold' },
+                                    padding: { top: 0, bottom: 50 }
                                 },
-                                legend: {
-                                    display: false,
-                                },
+                                legend: { display: false },
                                 tooltip: {
                                     callbacks: {
-                                        label: function (context) {
-                                            const flight = sortedFlights[context.dataIndex];
+                                        label: (context) => {
+                                            const flight = paginatedFlights[context.dataIndex];
                                             const flightHistory = flightMinMaxHistory[flight.id];
                                             const isSubscribed = userSubscriptions.some(sub => sub.flightId === flight.id);
-                                            let tooltipText = `Price: ${context.parsed.y.toFixed(2)}€`;
+                                            let tooltipText = `Price: €${context.parsed.y.toFixed(2)}`;
                                             if (isSubscribed) tooltipText += ' ★';
-                                            if (flightHistory && flightHistory.minPrice !== null) {
-                                                tooltipText += `\nHistorical Min: ${flightHistory.minPrice.toFixed(2)}€`;
-                                            }
-                                            if (flightHistory && flightHistory.maxPrice !== null) {
-                                                tooltipText += `\nHistorical Max: ${flightHistory.maxPrice.toFixed(2)}€`;
-                                            }
+                                            if (flightHistory?.minPrice !== null) tooltipText += `\nHistorical Min: €${flightHistory.minPrice.toFixed(2)}`;
+                                            if (flightHistory?.maxPrice !== null) tooltipText += `\nHistorical Max: €${flightHistory.maxPrice.toFixed(2)}`;
                                             return tooltipText;
                                         }
                                     }
@@ -258,42 +255,20 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                             scales: {
                                 x: {
                                     type: 'category',
-                                    title: {
-                                        display: true,
-                                        text: 'Departure Date',
-                                        color: axisTitleColor,
-                                        font: { size: 14 }
-                                    },
+                                    title: { display: true, text: 'Departure Date', color: axisTitleColor, font: { size: 14 } },
                                     ticks: {
-                                        color: axisTickColor,
-                                        font: { size: 13 },
-                                        callback: function (value, index, ticks) {
-                                            const dateString = this.getLabelForValue(value);
-                                            const date = parseISO(dateString);
-                                            if (isNaN(date.getTime())) {
-                                                return '';
-                                            }
-                                            return dateFormatFns(date, 'dd MMM');
+                                        color: axisTickColor, font: { size: 13 },
+                                        callback: function (value) {
+                                            const date = parseISO(this.getLabelForValue(value));
+                                            return !isNaN(date.getTime()) ? dateFormatFns(date, 'dd MMM') : '';
                                         }
                                     },
-                                    grid: {
-                                        color: gridLineColor,
-                                    }
+                                    grid: { color: gridLineColor }
                                 },
                                 y: {
-                                    title: {
-                                        display: true,
-                                        text: 'Price (EUR)',
-                                        color: axisTitleColor,
-                                        font: { size: 14 }
-                                    },
-                                    ticks: {
-                                        color: axisTickColor,
-                                        font: { size: 13 }
-                                    },
-                                    grid: {
-                                        color: gridLineColor,
-                                    },
+                                    title: { display: true, text: 'Price (EUR)', color: axisTitleColor, font: { size: 14 } },
+                                    ticks: { color: axisTickColor, font: { size: 13 } },
+                                    grid: { color: gridLineColor },
                                     beginAtZero: true,
                                 },
                             },
@@ -302,16 +277,25 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                         return (
                             <div key={route} className="chart-card">
                                 <div style={{ height: '400px', cursor: 'pointer' }}>
-                                    {!minMaxLoading && sortedFlights.length > 0 ? (
+                                    {!minMaxLoading && paginatedFlights.length > 0 ? (
                                         <Bar data={data} options={options} />
+                                    ) : minMaxLoading ? (
+                                        <p className="loading-spinner">Loading chart data...</p>
                                     ) : (
-                                        minMaxLoading ? (
-                                            <p className="loading-spinner">Loading chart data...</p>
-                                        ) : (
-                                            <p className="info-message">No flight data to display for this route yet.</p>
-                                        )
+                                        <p className="info-message">No flight data to display for this route.</p>
                                     )}
                                 </div>
+                                {totalPages > 1 && (
+                                    <div className="chart-navigation">
+                                        <button onClick={() => handlePageChange(route, currentPage - 1)} disabled={currentPage === 0}>
+                                            &larr;
+                                        </button>
+                                        <span>Page {currentPage + 1} of {totalPages}</span>
+                                        <button onClick={() => handlePageChange(route, currentPage + 1)} disabled={currentPage >= totalPages - 1}>
+                                            &rarr;
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
