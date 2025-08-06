@@ -1,383 +1,173 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
-import { fetchPriceHistory, createSubscription, updateSubscription, deleteSubscription, fetchSubscriptionByFlightAndEmail } from './api';
+import { fetchPriceHistory } from './api';
 import './FlightDetailModal.css';
 
+// --- Import Airline Logos ---
+import tuLogo from './tu.png';
+import bjLogo from './bj.png';
+
 import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    TimeScale,
-    Title,
-    Tooltip,
-    Legend,
+    Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Title, Tooltip, Legend, Filler
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import 'chartjs-adapter-date-fns';
-import { format as dateFormatFns, parseISO, format } from 'date-fns';
+import { parseISO, differenceInDays, format } from 'date-fns';
 
 ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    TimeScale,
-    Title,
-    Tooltip,
-    Legend,
-    ChartDataLabels
+    CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Title, Tooltip, Legend, Filler, ChartDataLabels
 );
 
-const FlightDetailModal = ({ flight, onClose, airlines, userEmail, userSubscriptions, setUserSubscriptions, enableEmailNotifications }) => {
+// Map airline codes to imported logos
+const airlineLogos = {
+    TU: tuLogo,
+    BJ: bjLogo,
+};
+
+// Component now renders an <img> tag if a logo is found
+const AirlineDisplay = ({ code, name }) => {
+    const logoSrc = airlineLogos[code];
+    return (
+        <div className="airline-display">
+            {logoSrc ? (
+                <img src={logoSrc} alt={`${name} logo`} className="airline-logo" />
+            ) : (
+                <span className="airline-name">{name}</span>
+            )}
+        </div>
+    );
+};
+
+const PriceGauge = ({ current, analytics }) => {
+    if (!analytics) return null;
+    const { minPrice, maxPrice, lowThreshold, highThreshold, status } = analytics;
+    const range = maxPrice - minPrice;
+    if (range <= 0) return null;
+    const position = ((current - minPrice) / range) * 100;
+    const clampedPosition = Math.max(3, Math.min(97, position));
+    const lowWidth = ((lowThreshold - minPrice) / range) * 100;
+    const highWidth = ((maxPrice - highThreshold) / range) * 100;
+    const avgWidth = 100 - lowWidth - highWidth;
+    return (
+        <div className="price-gauge-container">
+            <div className="gauge-track"><div className="gauge-bar-low" style={{ width: `${lowWidth}%` }}></div><div className="gauge-bar-avg" style={{ width: `${avgWidth}%` }}></div><div className="gauge-bar-high" style={{ width: `${highWidth}%` }}></div></div>
+            <div className="gauge-handle" style={{ left: `${clampedPosition}%` }}><div className="gauge-handle-label">{`€${current.toFixed(2)} is ${status}`}</div><div className="gauge-handle-dot"></div></div>
+            <div className="gauge-labels"><span style={{ left: `${lowWidth}%` }}>€{lowThreshold.toFixed(0)}</span><span style={{ right: `${highWidth}%` }}>€{highThreshold.toFixed(0)}</span></div>
+        </div>
+    );
+};
+
+const FlightDetailModal = ({ flight, onClose, airlines, userEmail }) => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [targetPrice, setTargetPrice] = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const [submitMessage, setSubmitMessage] = useState('');
 
-    const [existingSubscription, setExistingSubscription] = useState(null);
-
-    const capitalizeWords = useCallback((str) => {
-        if (!str) return '';
-        return str.toLowerCase().split(' ').map(word => {
-            return word.charAt(0).toUpperCase() + word.slice(1);
-        }).join(' ').split('-').map(word => {
-            return word.charAt(0).toUpperCase() + word.slice(1);
-        }).join('-');
-    }, []);
+    const priceAnalytics = useMemo(() => {
+        if (history.length < 2) return null;
+        const prices = history.map(h => h.priceEur);
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        const range = maxPrice - minPrice;
+        if (range <= 0) return null;
+        const lowThreshold = minPrice + range * 0.33;
+        const highThreshold = maxPrice - range * 0.33;
+        let status = 'average';
+        if (flight.priceEur < lowThreshold) status = 'low';
+        else if (flight.priceEur > highThreshold) status = 'high';
+        return { minPrice, maxPrice, lowThreshold, highThreshold, status };
+    }, [history, flight.priceEur]);
 
     useEffect(() => {
         const loadModalData = async () => {
-            if (!flight || !flight.id) {
-                setError("Invalid flight data provided.");
-                setLoading(false);
-                return;
-            }
-
+            if (!flight || !flight.id) return;
             setLoading(true);
-            setError(null);
-            setHistory([]);
             try {
                 const historyData = await fetchPriceHistory(flight.id);
                 setHistory(historyData);
-            } catch (err) {
-                console.error("Error loading price history:", err);
-                setError("Could not load price history.");
-            } finally {
-                setLoading(false);
-            }
-
-            setExistingSubscription(null);
-            if (userEmail) {
-                try {
-                    const sub = await fetchSubscriptionByFlightAndEmail(flight.id, userEmail);
-                    if (sub) {
-                        setExistingSubscription(sub);
-                        setTargetPrice(sub.targetPrice);
-                    } else {
-                        setTargetPrice('');
-                    }
-                } catch (err) {
-                    console.error("Error fetching existing subscription:", err);
-                    setSubmitMessage("Could not check existing subscription status.");
-                }
-            }
+            } catch (err) { console.error("Failed to load flight history:", err); }
+            setLoading(false);
         };
         loadModalData();
-    }, [flight, userEmail]);
+    }, [flight]);
 
-    const handleSubscriptionAction = async (actionType, newIsActive = undefined) => {
-        setSubmitting(true);
-        setSubmitMessage('');
-
-        if (actionType !== 'delete' && (!targetPrice || isNaN(targetPrice) || parseFloat(targetPrice) <= 0)) {
-            setSubmitMessage("Please enter a valid target price.");
-            setSubmitting(false);
-            return;
-        }
-
-        let payload = {
-            flightId: flight.id,
-            email: userEmail,
-            targetPrice: parseFloat(targetPrice),
-            enableEmailNotifications: enableEmailNotifications
-        };
-
-        if (newIsActive !== undefined) {
-            payload.isActive = newIsActive;
-        } else if (existingSubscription) {
-            payload.isActive = existingSubscription.isActive;
-        }
-
-        try {
-            let result;
-            if (actionType === 'create') {
-                result = await createSubscription(payload);
-                setSubmitMessage("Subscription created successfully!");
-            } else if (actionType === 'update' && existingSubscription) {
-                result = await updateSubscription(existingSubscription.id, {
-                    targetPrice: parseFloat(targetPrice),
-                    isActive: payload.isActive,
-                    enableEmailNotifications: enableEmailNotifications
-                });
-                setSubmitMessage("Subscription updated successfully!");
-            } else if (actionType === 'delete' && existingSubscription) {
-                result = await deleteSubscription(existingSubscription.id);
-                setSubmitMessage("Subscription deleted successfully!");
-            }
-
-            setUserSubscriptions(prevSubs => {
-                if (actionType === 'create') {
-                    return [...prevSubs, {
-                        ...result,
-                        flightDepartureAirportCode: flight.departureAirportCode,
-                        flightArrivalAirportCode: flight.arrivalAirportCode,
-                        flightDepartureDate: flight.departureDate,
-                        flightAirlineCode: flight.airlineCode,
-                        flightPrice: flight.priceEur
-                    }];
-                } else if (actionType === 'update') {
-                    return prevSubs.map(sub => sub.id === result.id ? {
-                        ...sub,
-                        targetPrice: result.targetPrice,
-                        isActive: result.isActive,
-                        enableEmailNotifications: result.enableEmailNotifications
-                    } : sub);
-                } else if (actionType === 'delete') {
-                    return prevSubs.filter(sub => sub.id !== existingSubscription.id);
+    const chartOptions = useMemo(() => {
+        if (!priceAnalytics) return {};
+        const { minPrice, maxPrice } = priceAnalytics;
+        const range = maxPrice - minPrice;
+        const stepSize = range > 100 ? 25 : (range > 50 ? 10 : 5);
+        const yMin = Math.floor(minPrice / stepSize) * stepSize - stepSize / 2;
+        const yMax = Math.ceil(maxPrice / stepSize) * stepSize + stepSize / 2;
+        return {
+            responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { display: false }, datalabels: { display: false },
+                tooltip: {
+                    enabled: true, backgroundColor: '#5a8eec', padding: 12, cornerRadius: 16,
+                    displayColors: false, yAlign: 'bottom', caretPadding: 15,
+                    xAlign: (context) => (context.tooltip.x + context.tooltip.width / 2 > context.chart.width) ? 'right' : 'left',
+                    callbacks: { title: () => '', label: (context) => `${differenceInDays(new Date(), new Date(context.parsed.x))} days ago - €${context.parsed.y.toFixed(2)}` }
                 }
-                return prevSubs;
-            });
-
-            const updatedSub = await fetchSubscriptionByFlightAndEmail(flight.id, userEmail);
-            setExistingSubscription(updatedSub);
-
-            setTimeout(onClose, 2000);
-        } catch (err) {
-            setSubmitMessage(err.message || "Action failed. Please try again.");
-            console.error("Subscription action error:", err);
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    if (!flight) {
-        return null;
-    }
-
-    const sortedHistory = [...history].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-    const filteredHistory = sortedHistory.reduce((acc, currentItem, index) => {
-        if (index === 0) {
-            acc.push(currentItem);
-            return acc;
-        }
-        const lastAddedItem = acc[acc.length - 1];
-        if (currentItem.priceEur !== lastAddedItem.priceEur || index === sortedHistory.length - 1) {
-            acc.push(currentItem);
-        }
-        return acc;
-    }, []);
-
-    const chartData = filteredHistory.map(h => ({
-        x: parseISO(h.timestamp),
-        y: h.priceEur
-    }));
-
+            },
+            scales: {
+                x: { type: 'time', time: { unit: 'day' }, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#909090', callback: (val) => `${differenceInDays(new Date(), new Date(val))} days ago` } },
+                y: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#909090', stepSize: stepSize, callback: (val) => `€${val}` }, min: yMin, max: yMax, }
+            }
+        };
+    }, [priceAnalytics]);
+    
+    if (!flight) return null;
+    
     const airline = airlines.find(a => a.code === flight.airlineCode);
-    const airlineName = airline ? capitalizeWords(airline.name) : flight.airlineCode;
-    const departureDateFormatted = format(parseISO(flight.departureDate), 'dd MMM yyyy');
-
-    const data = {
+    const departureDateFormatted = format(parseISO(flight.departureDate), 'EEE, dd MMM yyyy');
+    const chartData = {
         datasets: [{
-            label: 'Price History (EUR)',
-            data: chartData,
-            fill: true,
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderColor: 'rgba(75, 192, 192, 1)',
-            tension: 0.1,
-            pointBackgroundColor: 'rgba(75, 192, 192, 1)',
-            pointRadius: 5,
-            pointHoverRadius: 7,
+            label: 'Price History', data: history.map(h => ({ x: parseISO(h.timestamp), y: h.priceEur })),
+            borderColor: '#88aaff', backgroundColor: 'rgba(136, 170, 255, 0.15)',
+            fill: true, tension: 0.1, pointRadius: 0, pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#88aaff', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2
         }]
     };
-
-    const options = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            title: { display: false },
-            legend: { display: false },
-            datalabels: {
-                display: true,
-                align: 'top',
-                offset: 8,
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                borderRadius: 4,
-                color: 'white',
-                font: {
-                    weight: 'bold',
-                    size: 14,
-                },
-                padding: {
-                    top: 4, bottom: 4, left: 6, right: 6
-                },
-                formatter: function (value, context) {
-                    return value.y.toFixed(2); // Format to 2 decimal places
-                }
-            },
-            tooltip: {
-                callbacks: {
-                    title: function (context) {
-                        return format(context[0].parsed.x, 'MMM d, yyyy, h:mm a');
-                    },
-                    label: function (context) {
-                        return `Price: ${context.parsed.y.toFixed(2)} EUR`;
-                    }
-                }
-            }
-        },
-        scales: {
-            x: {
-                type: 'time',
-                time: {
-                    tooltipFormat: 'MMM d, yyyy, h:mm a',
-                    unit: 'day',
-                    displayFormats: {
-                        day: 'dd MMM',
-                        hour: 'hh:mm a'
-                    }
-                },
-                ticks: {
-                    source: 'data',
-                    autoSkip: false,
-                    maxRotation: 45,
-                    minRotation: 45,
-                    color: '#e0e0e0',
-                    callback: function (value, index, ticks) {
-                        const date = new Date(value);
-                        return dateFormatFns(date, 'dd MMM');
-                    }
-                },
-                grid: { color: 'rgba(255, 255, 255, 0.1)' }
-            },
-            y: {
-                ticks: {
-                    display: false,
-                },
-                grid: { color: 'rgba(255, 255, 255, 0.1)' }
-            }
-        },
-        layout: {
-            padding: {
-                top: 30,
-                left: 30,
-                right: 30
-            }
-        }
-    };
-
-    const isSubscriptionActive = existingSubscription?.isActive;
 
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <button className="modal-close-button" onClick={onClose}>×</button>
-                <h2>Price History for {flight.departureAirportCode} → {flight.arrivalAirportCode}</h2>
-                <div className="flight-info">
-                    <span><strong>Airline:</strong> {airlineName}</span>
-                    <span><strong>Departure:</strong> {departureDateFormatted}</span>
-                    <span><strong>Current Price:</strong> <span className="current-price">€{flight.priceEur.toFixed(2)}</span></span>
+                <div className="modal-column-left">
+                    <div className="price-history-section">
+                        <h3>Price History for this Search</h3>
+                        <div className="modal-chart-container">
+                            {!loading && chartData.datasets[0].data.length > 1 ? (<Line options={chartOptions} data={chartData} />) : (<p>Loading chart...</p>)}
+                        </div>
+                    </div>
                 </div>
 
-                <div className="modal-chart-container">
-                    {loading && <p>Loading history...</p>}
-                    {error && <p className="error-message">{error}</p>}
-                    {!loading && !error && history.length > 0 && (
-                        chartData.length > 1 ? (
-                            <Line key={flight.id} data={data} options={options} />
-                        ) : (
-                            <div className="single-point-message" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-                                <p style={{ fontSize: '1.2em', marginBottom: '10px' }}>Only one price point recorded:</p>
-                                <p style={{ fontSize: '1.8em', fontWeight: 'bold', color: 'var(--primary-button-bg)' }}>{chartData[0]?.y.toFixed(2)}€</p>
-                                <p style={{ marginTop: '10px' }}>Check back later for a price history graph.</p>
-                            </div>
-                        )
-                    )}
-                    {!loading && !error && history.length === 0 && <p>No price history available for this flight.</p>}
-                </div>
-
-                <div className="modal-actions-container">
-                    <div className="subscription-form-container">
-                        <form className="subscription-form" onSubmit={(e) => { e.preventDefault(); }}>
-                            <h3>Track this Flight</h3>
-                            {!userEmail ? (
-                                <p className="submit-message error-message">Please enter your email in the search form to subscribe.</p>
-                            ) : (
-                                <>
-                                    {existingSubscription ? (
-                                        <p className="submit-message">
-                                            Currently tracking at <strong>{existingSubscription.targetPrice.toFixed(2)}€</strong>. Status: <span className={isSubscriptionActive ? 'active-status' : 'inactive-status'}>
-                                                {isSubscriptionActive ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </p>
-                                    ) : (
-                                        <p>Get notified when the price drops.</p>
-                                    )}
-
-                                    <div className="form-group">
-                                        <input
-                                            type="number"
-                                            placeholder="Enter Target Price (EUR)"
-                                            value={targetPrice}
-                                            onChange={e => setTargetPrice(e.target.value)}
-                                            className="target-price-input"
-                                            required
-                                            disabled={submitting}
-                                            step="0.01"
-                                        />
-                                        {existingSubscription ? (
-                                            <>
-                                                <button type="button" className="subscribe-button update-button" onClick={() => handleSubscriptionAction('update')} disabled={submitting}>
-                                                    {submitting ? 'Updating...' : 'Update'}
-                                                </button>
-                                                <button type="button" className={`subscribe-button ${isSubscriptionActive ? 'deactivate-button' : 'activate-button'}`} onClick={() => handleSubscriptionAction('update', !isSubscriptionActive)} disabled={submitting}>
-                                                    {submitting ? '...' : (isSubscriptionActive ? 'Deactivate' : 'Activate')}
-                                                </button>
-                                                <button type="button" className="subscribe-button delete-button" onClick={() => handleSubscriptionAction('delete')} disabled={submitting}>
-                                                    {submitting ? 'Deleting...' : 'Delete'}
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <button type="button" className="subscribe-button" onClick={() => handleSubscriptionAction('create')} disabled={submitting}>
-                                                {submitting ? 'Subscribing...' : 'Subscribe'}
-                                            </button>
-                                        )}
-                                    </div>
-                                    {submitMessage && <p className="submit-message feedback">{submitMessage}</p>}
-                                </>
-                            )}
-                        </form>
+                <div className="modal-column-right">
+                    <div className="modal-top-info">
+                         <AirlineDisplay code={airline?.code} name={airline?.name || flight.airlineCode} />
+                         <span className="flight-date">{departureDateFormatted}</span>
                     </div>
 
-                    <div className="book-now-container">
-                        <div className="book-now-section">
+                    <div className="price-analysis-section">
+                        <h2 className="price-analysis-header">Prices are currently <span className={`price-status ${priceAnalytics?.status || ''}`}>{priceAnalytics?.status || '...'}</span></h2>
+                        <p className="price-range-info">Similar trips usually cost between €{priceAnalytics?.lowThreshold.toFixed(0)}–{priceAnalytics?.highThreshold.toFixed(0)}.</p>
+                    </div>
+
+                    <div className="price-gauge-wrapper">
+                        {!loading && <PriceGauge current={flight.priceEur} analytics={priceAnalytics} />}
+                    </div>
+
+                    <div className="modal-actions-panel">
+                        <div className="subscription-form-container">
+                            <h3>Track this Flight</h3>
+                            <div className="form-group">
+                                <input type="number" placeholder="Target Price" value={targetPrice} onChange={e => setTargetPrice(e.target.value)} className="target-price-input" disabled={submitting || !userEmail} />
+                                <button type="button" className="action-button" disabled={submitting || !userEmail}>Set Alert</button>
+                            </div>
+                        </div>
+                        <div className="book-now-container">
                             <h3>Ready to Book?</h3>
-                            {flight.bookingUrl ? (
-                                <>
-                                    <a href={flight.bookingUrl} target="_blank" rel="noopener noreferrer" className="book-now-button">
-                                        Book Now ✈️
-                                    </a>
-                                    <p className="book-now-info-text">
-                                        (This link leads to the airline's page. Prices may vary.)
-                                    </p>
-                                </>
-                            ) : (
-                                <p className="book-now-info-text">Booking links are not available for this airline. Please check the airline's website directly.</p>
-                            )}
+                            <a href={flight.bookingUrl || '#'} target="_blank" rel="noopener noreferrer" className={`action-button book-now-button ${!flight.bookingUrl ? 'disabled' : ''}`}>Book Now ✈️</a>
                         </div>
                     </div>
                 </div>
