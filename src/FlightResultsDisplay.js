@@ -153,7 +153,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                                                 formatter: function (value, context) {
                                                     const flight = sortedFlights[context.dataIndex];
                                                     const isSubscribed = userSubscriptions.some(sub => sub.flightId === flight.id);
-                                                    return `${value.toFixed(2)}€ ${isSubscribed ? '★' : ''}`;
+                                                    return `${value.toFixed(2)} ${isSubscribed ? '★' : ''}`;
                                                 }
                                             },
                                             minPrice: {
