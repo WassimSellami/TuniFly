@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
 import { fetchPriceHistory } from './api';
 import './FlightDetailModal.css';
 
-// --- Import Airline Logos ---
-import tuLogo from './tu.png';
-import bjLogo from './bj.png';
+import tuLogo from './assets/tu_logo.png';
+import bjLogo from './assets/bj_logo.png';
 
 import {
     Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Title, Tooltip, Legend, Filler
@@ -18,13 +17,11 @@ ChartJS.register(
     CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Title, Tooltip, Legend, Filler, ChartDataLabels
 );
 
-// Map airline codes to imported logos
 const airlineLogos = {
     TU: tuLogo,
     BJ: bjLogo,
 };
 
-// Component now renders an <img> tag if a logo is found
 const AirlineDisplay = ({ code, name }) => {
     const logoSrc = airlineLogos[code];
     return (
@@ -115,9 +112,9 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail }) => {
             }
         };
     }, [priceAnalytics]);
-    
+
     if (!flight) return null;
-    
+
     const airline = airlines.find(a => a.code === flight.airlineCode);
     const departureDateFormatted = format(parseISO(flight.departureDate), 'EEE, dd MMM yyyy');
     const chartData = {
@@ -144,8 +141,8 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail }) => {
 
                 <div className="modal-column-right">
                     <div className="modal-top-info">
-                         <AirlineDisplay code={airline?.code} name={airline?.name || flight.airlineCode} />
-                         <span className="flight-date">{departureDateFormatted}</span>
+                        <AirlineDisplay code={airline?.code} name={airline?.name || flight.airlineCode} />
+                        <span className="flight-date">{departureDateFormatted}</span>
                     </div>
 
                     <div className="price-analysis-section">

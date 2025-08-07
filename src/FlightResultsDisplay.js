@@ -14,6 +14,9 @@ import {
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { format as dateFormatFns, parseISO } from 'date-fns';
 
+import tuIcon from './assets/tu_icon.png';
+import bjIcon from './assets/bj_icon.png';
+
 ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -138,7 +141,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                     {Object.keys(groupedFlights).sort().map(route => {
                         const flightsForRoute = groupedFlights[route];
                         const sortedFlights = [...flightsForRoute].sort((a, b) => new Date(a.departureDate) - new Date(b.departureDate));
-                        
+
                         const currentPage = chartPages[route] || 0;
                         const totalPages = Math.ceil(sortedFlights.length / FLIGHTS_PER_PAGE);
                         const startIndex = currentPage * FLIGHTS_PER_PAGE;
