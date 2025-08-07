@@ -37,22 +37,40 @@ const AirlineDisplay = ({ code, name }) => {
 
 const PriceGauge = ({ current, analytics }) => {
     if (!analytics) return null;
-    const { minPrice, maxPrice, lowThreshold, highThreshold, status } = analytics;
-    const range = maxPrice - minPrice;
-    if (range <= 0) return null;
-    const position = ((current - minPrice) / range) * 100;
+    const { gaugeMin, gaugeMax, lowThreshold, highThreshold, status } = analytics;
+    const gaugeRange = gaugeMax - gaugeMin;
+
+    if (gaugeRange <= 0) return null;
+
+    const lowWidth = 25;
+    const avgWidth = 50;
+    const highWidth = 25;
+
+    const lowLabelPosition = 25;
+    const highLabelPosition = 75;
+
+    const position = ((current - gaugeMin) / gaugeRange) * 100;
     const clampedPosition = Math.max(3, Math.min(97, position));
-    const lowWidth = ((lowThreshold - minPrice) / range) * 100;
-    const highWidth = ((maxPrice - highThreshold) / range) * 100;
-    const avgWidth = 100 - lowWidth - highWidth;
+
     return (
         <div className="price-gauge-container">
-            <div className="gauge-track"><div className="gauge-bar-low" style={{ width: `${lowWidth}%` }}></div><div className="gauge-bar-avg" style={{ width: `${avgWidth}%` }}></div><div className="gauge-bar-high" style={{ width: `${highWidth}%` }}></div></div>
-            <div className="gauge-handle" style={{ left: `${clampedPosition}%` }}><div className="gauge-handle-label">{`€${current.toFixed(2)} is ${status}`}</div><div className="gauge-handle-dot"></div></div>
-            <div className="gauge-labels"><span style={{ left: `${lowWidth}%` }}>€{lowThreshold.toFixed(0)}</span><span style={{ right: `${highWidth}%` }}>€{highThreshold.toFixed(0)}</span></div>
+            <div className="gauge-track">
+                <div className="gauge-bar-low" style={{ width: `${lowWidth}%` }}></div>
+                <div className="gauge-bar-avg" style={{ width: `${avgWidth}%` }}></div>
+                <div className="gauge-bar-high" style={{ width: `${highWidth}%` }}></div>
+            </div>
+            <div className="gauge-handle" style={{ left: `${clampedPosition}%` }}>
+                <div className="gauge-handle-label">{`€${current.toFixed(2)} is ${status}`}</div>
+                <div className="gauge-handle-dot"></div>
+            </div>
+            <div className="gauge-labels">
+                <span style={{ left: `${lowLabelPosition}%` }}>€{lowThreshold.toFixed(0)}</span>
+                <span style={{ left: `${highLabelPosition}%` }}>€{highThreshold.toFixed(0)}</span>
+            </div>
         </div>
     );
 };
+
 
 const FlightDetailModal = ({ flight, onClose, airlines, userEmail }) => {
     const [history, setHistory] = useState([]);
@@ -65,15 +83,33 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail }) => {
         const prices = history.map(h => h.priceEur);
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
-        const range = maxPrice - minPrice;
-        if (range <= 0) return null;
-        const lowThreshold = minPrice + range * 0.33;
-        const highThreshold = maxPrice - range * 0.33;
+        const historicalRange = maxPrice - minPrice;
+
+        if (historicalRange <= 0) return null;
+
+        const padding = historicalRange / 4;
+        const gaugeMin = minPrice - padding;
+        const gaugeMax = maxPrice + padding;
+        const gaugeRange = gaugeMax - gaugeMin;
+
+        const lowThreshold = gaugeMin + (gaugeRange * 0.25);
+        const highThreshold = gaugeMin + (gaugeRange * 0.75);
+
         let status = 'average';
         if (flight.priceEur < lowThreshold) status = 'low';
         else if (flight.priceEur > highThreshold) status = 'high';
-        return { minPrice, maxPrice, lowThreshold, highThreshold, status };
+
+        return {
+            minPrice,
+            maxPrice,
+            gaugeMin,
+            gaugeMax,
+            lowThreshold,
+            highThreshold,
+            status
+        };
     }, [history, flight.priceEur]);
+
 
     useEffect(() => {
         const loadModalData = async () => {
@@ -89,12 +125,29 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail }) => {
     }, [flight]);
 
     const chartOptions = useMemo(() => {
-        if (!priceAnalytics) return {};
+        if (!priceAnalytics || history.length === 0) return {};
+
+        const timestamps = history.map(h => parseISO(h.timestamp).getTime());
+        const minTimestamp = Math.min(...timestamps);
+        const maxTimestamp = Math.max(...timestamps);
+
+        let totalRangeMs = maxTimestamp - minTimestamp;
+        if (totalRangeMs === 0) {
+            totalRangeMs = 5 * 24 * 60 * 60 * 1000;
+        }
+
+        const startPaddingMs = totalRangeMs * 0.05;
+        const endPaddingMs = totalRangeMs * 0.10;
+
+        const xMin = minTimestamp - startPaddingMs;
+        const xMax = maxTimestamp + endPaddingMs;
+
         const { minPrice, maxPrice } = priceAnalytics;
         const range = maxPrice - minPrice;
         const stepSize = range > 100 ? 25 : (range > 50 ? 10 : 5);
         const yMin = Math.floor(minPrice / stepSize) * stepSize - stepSize / 2;
         const yMax = Math.ceil(maxPrice / stepSize) * stepSize + stepSize / 2;
+
         return {
             responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
             plugins: {
@@ -107,11 +160,23 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail }) => {
                 }
             },
             scales: {
-                x: { type: 'time', time: { unit: 'day' }, grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#909090', callback: (val) => `${differenceInDays(new Date(), new Date(val))} days ago` } },
-                y: { grid: { color: 'rgba(255, 255, 255, 0.1)' }, ticks: { color: '#909090', stepSize: stepSize, callback: (val) => `€${val}` }, min: yMin, max: yMax, }
+                x: {
+                    type: 'time',
+                    time: { unit: 'day' },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    ticks: { color: '#909090', callback: (val) => `${differenceInDays(new Date(), new Date(val))} days ago` },
+                    min: xMin,
+                    max: xMax,
+                },
+                y: {
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    ticks: { color: '#909090', stepSize: stepSize, callback: (val) => `€${val}` },
+                    min: yMin,
+                    max: yMax,
+                }
             }
         };
-    }, [priceAnalytics]);
+    }, [priceAnalytics, history]);
 
     if (!flight) return null;
 
@@ -147,7 +212,9 @@ const FlightDetailModal = ({ flight, onClose, airlines, userEmail }) => {
 
                     <div className="price-analysis-section">
                         <h2 className="price-analysis-header">Prices are currently <span className={`price-status ${priceAnalytics?.status || ''}`}>{priceAnalytics?.status || '...'}</span></h2>
-                        <p className="price-range-info">Similar trips usually cost between €{priceAnalytics?.lowThreshold.toFixed(0)}–{priceAnalytics?.highThreshold.toFixed(0)}.</p>
+                        <p className="price-range-info">
+                            Similar trips usually cost between €{priceAnalytics?.lowThreshold.toFixed(0)}–€{priceAnalytics?.highThreshold.toFixed(0)}.
+                        </p>
                     </div>
 
                     <div className="price-gauge-wrapper">

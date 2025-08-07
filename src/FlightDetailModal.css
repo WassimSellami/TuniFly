@@ -1,80 +1,286 @@
-/* --- FlightDetailModal.css --- */
 .modal-overlay {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background-color: rgba(0, 0, 0, 0.85); display: flex;
-    align-items: center; justify-content: center; z-index: 1000;
-}
-.modal-content {
-    background-color: #2b303b; color: #e0e0e0; padding: 2rem;
-    border-radius: 16px; width: 95%; max-width: 1100px;
-    max-height: 90vh; border: 1px solid #4a4a4a;
-    display: grid; grid-template-columns: 55fr 45fr;
-    gap: 2.5rem; overflow: hidden;
-}
-.modal-close-button {
-    position: absolute; top: 15px; right: 20px; background: none; border: none;
-    color: #909090; font-size: 2.5rem; cursor: pointer; line-height: 1; z-index: 10;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
 }
 
-.modal-column-left, .modal-column-right { display: flex; flex-direction: column; }
-.price-history-section { flex-grow: 1; display: flex; flex-direction: column; }
-.price-history-section h3 { font-size: 1.25rem; font-weight: 500; margin-bottom: 1rem; text-align: left; }
-.modal-chart-container { flex-grow: 1; position: relative; min-height: 400px; }
+.modal-content {
+    background-color: #2b303b;
+    color: #e0e0e0;
+    padding: 2rem;
+    border-radius: 16px;
+    width: 95%;
+    max-width: 1100px;
+    max-height: 90vh;
+    border: 1px solid #4a4a4a;
+    display: grid;
+    grid-template-columns: 55fr 45fr;
+    gap: 2.5rem;
+    overflow: hidden;
+}
+
+.modal-close-button {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: #909090;
+    font-size: 2.5rem;
+    cursor: pointer;
+    line-height: 1;
+    z-index: 10;
+}
+
+.modal-column-left,
+.modal-column-right {
+    display: flex;
+    flex-direction: column;
+}
+
+.price-history-section {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.price-history-section h3 {
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    text-align: left;
+}
+
+.modal-chart-container {
+    flex-grow: 1;
+    position: relative;
+    min-height: 400px;
+}
 
 .modal-top-info {
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 2.5rem;
 }
-.airline-display { display: flex; align-items: center; gap: 0.75rem; }
-.airline-logo { 
+
+.airline-display {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.airline-logo {
     height: 60px;
-    width: auto; 
+    width: auto;
     transition: transform 0.2s ease-in-out;
 }
+
 .airline-logo:hover {
     transform: scale(1.05);
 }
-.airline-name { font-weight: 500; font-size: 1.2rem; }
-.flight-date { 
-    font-size: 1.1rem; 
+
+.airline-name {
+    font-weight: 500;
+    font-size: 1.2rem;
+}
+
+.flight-date {
+    font-size: 1.1rem;
     color: #e0e0e0;
     font-weight: 700;
 }
 
-.price-analysis-section { margin-bottom: 1rem; }
-.price-analysis-header { font-size: 1.6rem; font-weight: 500; margin-bottom: 0.5rem; }
-.price-status { font-weight: 700; }
-.price-status.low { color: #28a745; }
-.price-status.high { color: #dc3545; }
-.price-status.average { color: #ffc107; }
-.price-range-info { font-size: 0.95rem; color: #c0c0c0; }
-.price-gauge-wrapper { margin-top: 1.5rem; }
-.price-gauge-container { position: relative; width: 100%; height: 50px; padding-top: 30px; }
-.gauge-track { position: absolute; width: 100%; height: 8px; border-radius: 4px; display: flex; overflow: hidden; }
-.gauge-bar-low { background-color: #28a745; }
-.gauge-bar-avg { background-color: #ffc107; }
-.gauge-bar-high { background-color: #dc3545; }
-.gauge-handle { position: absolute; bottom: 18px; transform: translateX(-50%); text-align: center; transition: left 0.4s ease-out; }
-.gauge-handle-label { background-color: #5a8eec; color: white; padding: 5px 12px; border-radius: 16px; font-size: 0.9rem; font-weight: bold; white-space: nowrap; margin-bottom: 8px; }
-.gauge-handle-dot { width: 20px; height: 20px; background-color: white; border: 5px solid #5a8eec; border-radius: 50%; margin: 0 auto; }
-.gauge-labels { position: relative; top: 10px; }
-.gauge-labels span { position: absolute; transform: translateX(-50%); color: #c0c0c0; font-size: 0.9rem; }
-
-.modal-actions-panel { margin-top: auto; padding-top: 1.5rem; }
-.subscription-form-container, .book-now-container { padding: 1.25rem; background-color: rgba(90, 142, 236, 0.1); border-radius: 8px; text-align: center; }
-.subscription-form-container { margin-bottom: 1rem; }
-.subscription-form h3, .book-now-container h3 { margin-top: 0; margin-bottom: 1rem; font-weight: 500; font-size: 1.1rem; }
-.form-group { display: flex; gap: 0.5rem; align-items: center; }
-.target-price-input {
-    flex-grow: 1; width: 60px; background: #3a3a3a; border-color: #777;
-    color: white; padding: 0.75rem; border-radius: 6px; border: 1px solid; text-align: center;
+.price-analysis-section {
+    margin-bottom: 1rem;
 }
-.action-button { background-color: var(--primary-button-bg, #5a8eec); color: white; border: none; padding: 0.75rem 1rem; border-radius: 6px; font-weight: bold; text-decoration: none; text-align: center; cursor: pointer; transition: filter 0.2s; width: 100%; }
-.book-now-button { display: block; background-color: #8e44ad; }
-.action-button:hover:not(:disabled) { filter: brightness(1.15); }
-.action-button:disabled { background-color: #555; cursor: not-allowed; filter: brightness(1); }
+
+.price-analysis-header {
+    font-size: 1.6rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.price-status {
+    font-weight: 700;
+}
+
+.price-status.low {
+    color: #28a745;
+}
+
+.price-status.high {
+    color: #dc3545;
+}
+
+.price-status.average {
+    color: #ffc107;
+}
+
+.price-range-info {
+    font-size: 0.95rem;
+    color: #c0c0c0;
+}
+
+.price-gauge-wrapper {
+    margin-top: 1.5rem;
+}
+
+.price-gauge-container {
+    position: relative;
+    width: 100%;
+    height: 50px;
+    padding-top: 30px;
+}
+
+.gauge-track {
+    position: absolute;
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    display: flex;
+    overflow: hidden;
+}
+
+.gauge-bar-low {
+    background-color: #28a745;
+}
+
+.gauge-bar-avg {
+    background-color: #ffc107;
+}
+
+.gauge-bar-high {
+    background-color: #dc3545;
+}
+
+.gauge-handle {
+    position: absolute;
+    bottom: 18px;
+    transform: translateX(-50%);
+    text-align: center;
+    transition: left 0.4s ease-out;
+}
+
+.gauge-handle-label {
+    background-color: #5a8eec;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    white-space: nowrap;
+    margin-bottom: 8px;
+}
+
+.gauge-handle-dot {
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border: 5px solid #5a8eec;
+    border-radius: 50%;
+    margin: 0 auto;
+}
+
+.gauge-labels {
+    position: relative;
+    top: 10px;
+}
+
+.gauge-labels span {
+    position: absolute;
+    transform: translateX(-50%);
+    color: #c0c0c0;
+    font-size: 0.9rem;
+}
+
+.modal-actions-panel {
+    margin-top: auto;
+    padding-top: 1.5rem;
+}
+
+.subscription-form-container,
+.book-now-container {
+    padding: 1.25rem;
+    background-color: rgba(90, 142, 236, 0.1);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.subscription-form-container {
+    margin-bottom: 1rem;
+}
+
+.subscription-form h3,
+.book-now-container h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-weight: 500;
+    font-size: 1.1rem;
+}
+
+.form-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.target-price-input {
+    flex-grow: 1;
+    width: 60px;
+    background: #3a3a3a;
+    border-color: #777;
+    color: white;
+    padding: 0.75rem;
+    border-radius: 6px;
+    border: 1px solid;
+    text-align: center;
+}
+
+.action-button {
+    background-color: var(--primary-button-bg, #5a8eec);
+    color: white;
+    border: none;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    text-align: center;
+    cursor: pointer;
+    transition: filter 0.2s;
+    width: 100%;
+}
+
+.book-now-button {
+    display: block;
+    background-color: #8e44ad;
+}
+
+.action-button:hover:not(:disabled) {
+    filter: brightness(1.15);
+}
+
+.action-button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+    filter: brightness(1);
+}
 
 @media (max-width: 950px) {
-    .modal-content { grid-template-columns: 1fr; overflow-y: auto; padding: 1.5rem; }
-    .modal-column-left { min-height: 400px; }
+    .modal-content {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    .modal-column-left {
+        min-height: 400px;
+    }
 }
