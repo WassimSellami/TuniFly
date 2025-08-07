@@ -14,8 +14,8 @@ import {
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { format as dateFormatFns, parseISO } from 'date-fns';
 
-import tuIcon from './assets/tu_icon.png';
-import bjIcon from './assets/bj_icon.png';
+import tuLogo from './assets/tu_logo.png';
+import bjLogo from './assets/bj_logo.png';
 
 ChartJS.register(
     CategoryScale,
@@ -27,6 +27,11 @@ ChartJS.register(
     ChartDataLabels
 );
 
+const airlineIconSources = {
+    TU: tuLogo,
+    BJ: bjLogo,
+};
+
 const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscriptions, setUserSubscriptions, enableEmailNotifications }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedFlight, setSelectedFlight] = useState(null);
@@ -34,8 +39,11 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
     const [minMaxLoading, setMinMaxLoading] = useState(true);
     const [allAirports, setAllAirports] = useState([]);
     const [chartPages, setChartPages] = useState({});
+    const [loadedIcons, setLoadedIcons] = useState({});
 
     const FLIGHTS_PER_PAGE = 9;
+    const LOGO_WIDTH = 55;
+    const LOGO_HEIGHT = 34;
 
     const chartTitleColor = '#FFFFFF';
     const axisTitleColor = '#CCCCCC';
@@ -47,6 +55,25 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
     const minLabelColor = 'rgba(144, 238, 144, 1)';
     const maxLabelColor = 'rgba(255, 105, 97, 1)';
     const labelBackgroundColor = 'rgba(30, 30, 30, 0.8)';
+
+    useEffect(() => {
+        const imageObjects = {};
+        const promises = Object.entries(airlineIconSources).map(([code, src]) => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.src = src;
+                img.onload = () => {
+                    imageObjects[code] = img;
+                    resolve();
+                };
+                img.onerror = () => resolve();
+            });
+        });
+
+        Promise.all(promises).then(() => {
+            setLoadedIcons(imageObjects);
+        });
+    }, []);
 
     const capitalizeWords = useCallback((str) => {
         if (!str) return '';
@@ -155,23 +182,45 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                         const arrName = getAirportDisplayName(arrCode);
                         const chartRouteTitle = `${depName} → ${arrName}`;
 
+                        const iconPlugin = {
+                            id: 'customIcons',
+                            afterDatasetsDraw(chart, args, options) {
+                                const { ctx } = chart;
+                                ctx.save();
+                                const meta = chart.getDatasetMeta(0);
+                                meta.data.forEach((element, index) => {
+                                    const flight = paginatedFlights[index];
+                                    if (!flight) return;
+
+                                    const code = flight.airlineCode?.toUpperCase();
+                                    const icon = loadedIcons[code];
+
+                                    if (icon) {
+                                        const x = element.x - (LOGO_WIDTH / 2);
+                                        const y = element.y + 2;
+                                        ctx.drawImage(icon, x, y, LOGO_WIDTH, LOGO_HEIGHT);
+                                    }
+                                });
+                                ctx.restore();
+                            }
+                        };
+
                         const data = {
                             labels: labels,
                             datasets: [{
-                                type: 'bar',
                                 label: 'Current Price (EUR)',
                                 data: prices,
                                 backgroundColor: barBackgroundColor,
                                 borderColor: barBorderColor,
                                 borderWidth: 1,
                                 maxBarThickness: 100,
-                                order: 1,
                                 datalabels: {
                                     display: true,
                                     labels: {
                                         currentPrice: {
-                                            align: 'center',
                                             anchor: 'center',
+                                            align: 'center',
+                                            offset: 30,
                                             color: 'white',
                                             font: { weight: 'bold', size: 18 },
                                             formatter: (value, context) => {
@@ -183,7 +232,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                                         minPrice: {
                                             align: 'center',
                                             anchor: 'start',
-                                            offset: -4,
+                                            offset: 4,
                                             color: minLabelColor,
                                             font: { weight: 'bold', size: 14 },
                                             formatter: (value, context) => {
@@ -194,12 +243,11 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                                             padding: { top: 2, bottom: 2, left: 4, right: 4 },
                                             backgroundColor: labelBackgroundColor,
                                             borderRadius: 4,
-                                            clip: false,
                                         },
                                         maxPrice: {
                                             align: 'center',
                                             anchor: 'end',
-                                            offset: -4,
+                                            offset: 4,
                                             color: maxLabelColor,
                                             font: { weight: 'bold', size: 14 },
                                             formatter: (value, context) => {
@@ -210,7 +258,6 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                                             padding: { top: 2, bottom: 2, left: 4, right: 4 },
                                             backgroundColor: labelBackgroundColor,
                                             borderRadius: 4,
-                                            clip: false,
                                         }
                                     }
                                 }
@@ -220,6 +267,9 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                         const options = {
                             responsive: true,
                             maintainAspectRatio: false,
+                            layout: {
+                                paddingTop: 30
+                            },
                             onClick: (event, elements) => {
                                 if (elements.length > 0) {
                                     const clickedElement = elements[0];
@@ -237,7 +287,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                                     text: `Prices for Route: ${chartRouteTitle}`,
                                     color: chartTitleColor,
                                     font: { size: 20, weight: 'bold' },
-                                    padding: { top: 0, bottom: 50 }
+                                    padding: { top: 10, bottom: 40 }
                                 },
                                 legend: { display: false },
                                 tooltip: {
@@ -281,7 +331,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                             <div key={route} className="chart-card">
                                 <div style={{ height: '400px', cursor: 'pointer' }}>
                                     {!minMaxLoading && paginatedFlights.length > 0 ? (
-                                        <Bar data={data} options={options} />
+                                        <Bar data={data} options={options} plugins={[iconPlugin, ChartDataLabels]} />
                                     ) : minMaxLoading ? (
                                         <p className="loading-spinner">Loading chart data...</p>
                                     ) : (
