@@ -1,4 +1,4 @@
-const BASE_URL = 'https://tunisia-flights-backend.onrender.com';
+const BASE_URL = 'https://tunifly-service.onrender.com';
 
 export const fetchAirlines = async () => {
     try {
