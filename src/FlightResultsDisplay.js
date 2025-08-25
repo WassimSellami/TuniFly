@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Bar } from 'react-chartjs-2';
 import FlightDetailModal from './FlightDetailModal';
-import { fetchMinMaxPrice, fetchAirports } from './api';
+import { fetchAirports } from './api';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -35,8 +35,6 @@ const airlineIconSources = {
 const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscriptions, setUserSubscriptions, enableEmailNotifications }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedFlight, setSelectedFlight] = useState(null);
-    const [flightMinMaxHistory, setFlightMinMaxHistory] = useState({});
-    const [minMaxLoading, setMinMaxLoading] = useState(true);
     const [allAirports, setAllAirports] = useState([]);
     const [chartPages, setChartPages] = useState({});
     const [loadedIcons, setLoadedIcons] = useState({});
@@ -109,41 +107,6 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
         setChartPages(initialPages);
     }, [groupedFlights]);
 
-    useEffect(() => {
-        const fetchAllFlightMinMaxHistory = async () => {
-            setMinMaxLoading(true);
-            const newFlightMinMaxHistory = {};
-            const uniqueFlightIds = new Set();
-
-            Object.values(groupedFlights).forEach(flightsInRoute => {
-                flightsInRoute.forEach(flight => {
-                    uniqueFlightIds.add(flight.id);
-                });
-            });
-
-            const promises = Array.from(uniqueFlightIds).map(async (id) => {
-                try {
-                    const data = await fetchMinMaxPrice(id);
-                    newFlightMinMaxHistory[id] = data;
-                } catch (err) {
-                    console.error(`Failed to fetch min/max price for flight ${id}:`, err);
-                    newFlightMinMaxHistory[id] = { minPrice: null, maxPrice: null };
-                }
-            });
-
-            await Promise.all(promises);
-            setFlightMinMaxHistory(newFlightMinMaxHistory);
-            setMinMaxLoading(false);
-        };
-
-        if (Object.keys(groupedFlights).length > 0 && allAirports.length > 0) {
-            fetchAllFlightMinMaxHistory();
-        } else if (Object.keys(groupedFlights).length === 0) {
-            setFlightMinMaxHistory({});
-            setMinMaxLoading(false);
-        }
-    }, [groupedFlights, allAirports]);
-
     const handleFlightClick = (flight) => {
         setSelectedFlight(flight);
         setIsModalOpen(true);
@@ -163,7 +126,6 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                     Flight Price Trends
                     <span className="click-details-text"> (Click a bar to show details)</span>
                 </h2>
-                {minMaxLoading && <p className="loading-spinner">Loading historical price ranges...</p>}
                 <div className="results-grid">
                     {Object.keys(groupedFlights).sort().map(route => {
                         const flightsForRoute = groupedFlights[route];
@@ -237,8 +199,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                                             font: { weight: 'bold', size: 14 },
                                             formatter: (value, context) => {
                                                 const flight = paginatedFlights[context.dataIndex];
-                                                const flightHistory = flightMinMaxHistory[flight.id];
-                                                return flightHistory && flightHistory.minPrice !== null ? `Min: ${flightHistory.minPrice.toFixed(2)}` : '';
+                                                return flight.minPrice !== null ? `Min: ${flight.minPrice.toFixed(2)}` : '';
                                             },
                                             padding: { top: 2, bottom: 2, left: 4, right: 4 },
                                             backgroundColor: labelBackgroundColor,
@@ -252,8 +213,7 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                                             font: { weight: 'bold', size: 14 },
                                             formatter: (value, context) => {
                                                 const flight = paginatedFlights[context.dataIndex];
-                                                const flightHistory = flightMinMaxHistory[flight.id];
-                                                return flightHistory && flightHistory.maxPrice !== null ? `Max: ${flightHistory.maxPrice.toFixed(2)}` : '';
+                                                return flight.maxPrice !== null ? `Max: ${flight.maxPrice.toFixed(2)}` : '';
                                             },
                                             padding: { top: 2, bottom: 2, left: 4, right: 4 },
                                             backgroundColor: labelBackgroundColor,
@@ -294,12 +254,11 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                                     callbacks: {
                                         label: (context) => {
                                             const flight = paginatedFlights[context.dataIndex];
-                                            const flightHistory = flightMinMaxHistory[flight.id];
                                             const isSubscribed = userSubscriptions.some(sub => sub.flightId === flight.id);
                                             let tooltipText = `Price: €${context.parsed.y.toFixed(2)}`;
                                             if (isSubscribed) tooltipText += ' ★';
-                                            if (flightHistory?.minPrice !== null) tooltipText += `\nHistorical Min: €${flightHistory.minPrice.toFixed(2)}`;
-                                            if (flightHistory?.maxPrice !== null) tooltipText += `\nHistorical Max: €${flightHistory.maxPrice.toFixed(2)}`;
+                                            if (flight?.minPrice != null) tooltipText += `\nHistorical Min: €${flight.minPrice.toFixed(2)}`;
+                                            if (flight?.maxPrice != null) tooltipText += `\nHistorical Max: €${flight.maxPrice.toFixed(2)}`;
                                             return tooltipText;
                                         }
                                     }
@@ -330,10 +289,8 @@ const FlightResultsDisplay = ({ groupedFlights, airlines, userEmail, userSubscri
                         return (
                             <div key={route} className="chart-card">
                                 <div style={{ height: '400px', cursor: 'pointer' }}>
-                                    {!minMaxLoading && paginatedFlights.length > 0 ? (
+                                    {paginatedFlights.length > 0 ? (
                                         <Bar data={data} options={options} plugins={[iconPlugin, ChartDataLabels]} />
-                                    ) : minMaxLoading ? (
-                                        <p className="loading-spinner">Loading chart data...</p>
                                     ) : (
                                         <p className="info-message">No flight data to display for this route.</p>
                                     )}

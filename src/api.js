@@ -87,24 +87,6 @@ export const fetchPriceHistory = async (flightId) => {
     }
 };
 
-// NEW: API call for min/max price
-export const fetchMinMaxPrice = async (flightId) => {
-    try {
-        const response = await fetch(`${BASE_URL}/price-history/flight/${flightId}/min-max`);
-        if (!response.ok) {
-            if (response.status === 404) {
-                return { minPrice: null, maxPrice: null, flightId: flightId };
-            }
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return await response.json();
-    } catch (error) {
-        console.error(`Error fetching min/max price for flight ${flightId}:`, error);
-        return { minPrice: null, maxPrice: null, flightId: flightId };
-    }
-};
-
-
 export const fetchUserByEmail = async (email) => {
     if (!email) return null;
     try {
